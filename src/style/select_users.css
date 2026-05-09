@@ -1,0 +1,210 @@
+.user-picker-overlay {
+  min-height: calc(100vh - 46px - 48px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px;
+  background: rgba(255,255,255,0.55);
+}
+
+.user-picker-modal {
+  width: 100%;
+  max-width: 760px;
+  background: var(--surface);
+  border-radius: 0;
+  position: relative;
+  padding: 10px 0 24px;
+}
+
+.user-picker-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: none;
+  color: #5b5b74;
+  font-size: 36px;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-picker-close:hover {
+  opacity: 0.75;
+}
+
+.user-picker-title {
+  text-align: center;
+  font-size: 32px;
+  font-weight: 500;
+  color: #2d3748;
+  margin: 30px 0 18px;
+}
+
+.user-picker-search-wrap {
+  padding: 0 34px;
+  margin-bottom: 16px;
+}
+
+.user-picker-search {
+  width: 100%;
+  height: 44px;
+  border: 2px solid #00a9d9;
+  border-radius: 2px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+}
+
+.user-picker-search:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 169, 217, 0.12);
+}
+
+.user-picker-list {
+  margin: 0 34px;
+  border-top: 1px solid #e7ebf0;
+}
+
+.user-picker-option {
+  position: relative;
+  border-bottom: 1px solid #e7ebf0;
+}
+
+.user-picker-option input[type="radio"],
+.user-picker-option input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.user-picker-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 66px;
+  padding: 12px 16px 12px 0;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.user-picker-label:hover {
+  background: #f8fafc;
+}
+
+/* Estat seleccionat sense JS */
+.user-picker-option input[type="radio"]:checked + .user-picker-label,
+.user-picker-option input[type="checkbox"]:checked + .user-picker-label {
+  background: #e8f4f1;
+}
+
+.user-picker-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  margin-left: 2px;
+  overflow: hidden;
+  background-color: #cbd5e0;
+}
+
+.user-picker-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-picker-name {
+  flex: 1;
+  font-size: 18px;
+  color: #2d3748;
+  line-height: 1.2;
+}
+
+.user-picker-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.user-picker-submit {
+  min-width: 72px;
+  height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 4px;
+  background: var(--teal);
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.user-picker-submit:hover {
+  background: var(--teal-dark);
+}
+
+.user-picker-empty {
+  padding: 22px 10px;
+  text-align: center;
+  color: var(--text-hint);
+  font-size: 14px;
+}
+
+.user-picker-remove {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: #4a4a68;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+}
+
+/* Mostrar remove només si està seleccionat */
+.user-picker-option input[type="radio"]:checked + .user-picker-label + .user-picker-remove,
+.user-picker-option input[type="checkbox"]:checked + .user-picker-label + .user-picker-remove {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .user-picker-title {
+    font-size: 26px;
+  }
+
+  .user-picker-search-wrap,
+  .user-picker-list {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+
+  .user-picker-name {
+    font-size: 16px;
+  }
+
+  .user-picker-option:has(input[type="checkbox"]:checked) {
+  background: #e8f5e9;
+  border-color: var(--teal);
+  }
+}

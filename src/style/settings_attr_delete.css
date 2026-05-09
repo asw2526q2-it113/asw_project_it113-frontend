@@ -1,0 +1,57 @@
+.delete-card {
+    background: var(--surface); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); max-width: 560px; overflow: hidden;
+  }
+  .delete-card-header {
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .delete-card-header .icon-warning {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #fef2f2; display: flex; align-items: center; justify-content: center;
+  }
+  .delete-card-header .icon-warning svg {
+    width: 16px; height: 16px; stroke: #dc2626; fill: none; stroke-width: 1.8;
+  }
+  .delete-card-header h2 { font-size: 15px; font-weight: 600; margin: 0; color: #dc2626; }
+  .delete-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; }
+  .attr-name-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 20px;
+    background: var(--bg); border: 1px solid var(--border);
+    font-size: 13px; font-weight: 500;
+  }
+  .color-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,.1);
+  }
+  .affected-box {
+    background: #fff7ed; border: 1px solid #fdba74;
+    border-radius: var(--radius); padding: 14px 16px;
+  }
+  .affected-box p { font-size: 13px; color: #92400e; margin: 0 0 12px; font-weight: 500; }
+  .affected-list {
+    list-style: none; padding: 0; margin: 0 0 12px;
+    display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto;
+  }
+  .affected-list li {
+    font-size: 12px; color: var(--text-muted); padding: 4px 8px;
+    background: white; border-radius: 6px; border: 1px solid var(--border);
+  }
+  .affected-list li a { color: var(--teal-dark); text-decoration: none; font-weight: 500; }
+  .affected-list li a:hover { text-decoration: underline; }
+  .reassign-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .reassign-group label { font-size: 12px; font-weight: 500; color: #92400e; }
+  .reassign-group select {
+    height: 34px; padding: 0 10px;
+    border: 1px solid #fdba74; border-radius: var(--radius);
+    font-size: 13px; font-family: inherit;
+    background: white; color: var(--text); outline: none; width: 100%;
+  }
+  .reassign-group select:focus { border-color: var(--teal); }
+  .reassign-note { font-size: 11px; color: #78350f; }
+  .no-affected { font-size: 13px; color: var(--text-muted); }
+  .delete-actions {
+    padding: 16px 22px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: center;
+  }
