@@ -41,6 +41,7 @@ export default function IssueDetail() {
       console.log("API RESPONSE:", response);
 
       setIssue(response.data);
+      console.log("ACTIVITIES:", response.data.activities);
 
     } catch (err) {
       console.error("ERROR:", err);
@@ -498,13 +499,32 @@ export default function IssueDetail() {
                     className="activity-item"
                     key={activity.id}
                   >
-                    <div className="activity-time">
-                      {new Date(
-                        activity.created_at
-                      ).toLocaleString()}
+                    <div className="comment-avatar">
+                      {activity.user?.avatar ? (
+                        <img
+                          src={activity.user.avatar}
+                          alt={activity.user.username}
+                          className="comment-avatar-img"
+                        />
+                      ) : (
+                        (activity.user?.username || "?")[0].toUpperCase()
+                      )}
                     </div>
 
-                    <div>{activity.description}</div>
+                    <div className="activity-body">
+                      <div className="activity-content">
+                        <strong>
+                          {activity.user?.username}
+                        </strong>{" "}
+                        {activity.text}
+                      </div>
+
+                      <div className="activity-time">
+                        {new Date(
+                          activity.created_at
+                        ).toLocaleString()}
+                      </div>
+                    </div>
                   </div>
                 ))
               )}

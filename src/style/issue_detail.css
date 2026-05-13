@@ -79,12 +79,34 @@
   .comment-textarea:focus { outline: none; border-color: var(--teal); }
 
   .activity-item {
-    display: flex; gap: 8px; align-items: baseline;
-    padding: 5px 0; font-size: 12px; color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+
+    padding: 12px 0;
+
     border-bottom: 1px solid var(--border);
   }
-  .activity-item:last-child { border-bottom: none; }
-  .activity-time { white-space: nowrap; flex-shrink: 0; }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-body {
+    flex: 1;
+  }
+
+  .activity-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .activity-time {
+    margin-top: 4px;
+
+    font-size: 11px;
+
+    color: var(--text-hint);
+  }
 
   /* Sidebar */
   .status-selector {
