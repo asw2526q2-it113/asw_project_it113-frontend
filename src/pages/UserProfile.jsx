@@ -18,6 +18,16 @@ function getInitials(username) {
     .toUpperCase();
 }
 
+function getAvatarUrl(avatar) {
+  if (!avatar) return null;
+
+  if (avatar.startsWith("http://") || avatar.startsWith("https://")) {
+    return avatar;
+  }
+
+  return `https://asw-project-it113.onrender.com${avatar}`;
+}
+
 function formatDate(value) {
   if (!value) return "—";
 
@@ -290,12 +300,19 @@ export default function UserProfile() {
         avatar: response.data.avatar,
       }));
     } catch (err) {
-      console.error(err);
+      console.error("Avatar upload error:", err.response?.data || err);
+
+      const isHtmlError =
+        typeof err.response?.data === "string" &&
+        err.response.data.includes("<!DOCTYPE html>");
 
       const message =
+        err.response?.data?.avatar?.[0] ||
         err.response?.data?.error ||
         err.response?.data?.detail ||
-        "Could not update avatar.";
+        (isHtmlError
+          ? "Could not update avatar. Backend returned an internal error."
+          : "Could not update avatar.");
 
       setError(message);
     } finally {
@@ -345,9 +362,9 @@ export default function UserProfile() {
     <div className="profile-layout">
       <aside className="profile-sidebar">
         <div className="avatar-edit-container">
-          {profile.avatar ? (
+          {getAvatarUrl(profile.avatar) ? (
             <img
-              src={profile.avatar}
+              src={getAvatarUrl(profile.avatar)}
               alt={profile.username}
               className="avatar-big"
             />
@@ -384,25 +401,6 @@ export default function UserProfile() {
 
         <h2>{profile.username}</h2>
         <p>@{profile.username}</p>
-
-        <div className="profile-stats">
-          <div>
-            <strong>{profile.count_assigned ?? assignedIssues.length}</strong>
-            <span>Open assigned issues</span>
-          </div>
-
-          {isOwnProfile && (
-            <div>
-              <strong>{profile.count_watched ?? watchedIssues.length}</strong>
-              <span>Watched issues</span>
-            </div>
-          )}
-
-          <div>
-            <strong>{profile.count_comments ?? comments.length}</strong>
-            <span>Comments</span>
-          </div>
-        </div>
 
         <div className="profile-bio">
           <h3>Biography</h3>
@@ -447,14 +445,37 @@ export default function UserProfile() {
               {isOwnProfile && (
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="bio-edit-link"
                   onClick={() => setEditingBio(true)}
                 >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
                   Edit biography
                 </button>
               )}
             </>
           )}
+        </div>
+
+        <div className="profile-stats">
+          <div>
+            <strong>{profile.count_assigned ?? assignedIssues.length}</strong>
+            <span>Open assigned issues</span>
+          </div>
+
+          {isOwnProfile && (
+            <div>
+              <strong>{profile.count_watched ?? watchedIssues.length}</strong>
+              <span>Watched issues</span>
+            </div>
+          )}
+
+          <div>
+            <strong>{profile.count_comments ?? comments.length}</strong>
+            <span>Comments</span>
+          </div>
         </div>
       </aside>
 

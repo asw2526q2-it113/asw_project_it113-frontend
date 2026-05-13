@@ -36,7 +36,7 @@ export const usersApi = (apiKey) => {
 
       return http.put(`users/${username}/avatar/`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": undefined,
         },
       });
     },
