@@ -16,9 +16,30 @@ export const usersApi = (apiKey) => {
     assignedIssues: (username, params = {}) =>
       http.get(`users/${username}/issues/`, { params }),
 
-    // PUT /api/users/bio/
-    updateBio: (bio) =>
-      http.put("users/bio/", { bio }),
+    // GET /api/users/:username/watched-issues/
+    // Solo se puede consultar para el propio usuario autenticado
+    watchedIssues: (username, params = {}) =>
+      http.get(`users/${username}/watched-issues/`, { params }),
+
+    // GET /api/users/:username/comments/
+    comments: (username) =>
+      http.get(`users/${username}/comments/`),
+
+    // PATCH /api/users/:username/bio/
+    updateBio: (username, bio) =>
+      http.patch(`users/${username}/bio/`, { bio }),
+
+    // PUT /api/users/:username/avatar/
+    updateAvatar: (username, file) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      return http.put(`users/${username}/avatar/`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    },
 
     // POST /api/users/:username/reset-avatar/
     resetAvatar: (username) =>

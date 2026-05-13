@@ -7,7 +7,7 @@ export const useUser = () => useContext(UserContext);
 
 const USERS = [
   { id: 1, username: "janobe05",    apiKey: "7926960220e90508d851ada1e272695cf2f7eb8c" },
-  { id: 2, username: "altreusuari", apiKey: "POSA_AQUI_API_KEY_2" },
+  { id: 2, username: "laiacladjor", apiKey: "4c6723bca35ff43bb65204135e906a6ec2a6bb6a" },
   { id: 3, username: "terceruser",  apiKey: "POSA_AQUI_API_KEY_3" },
 ];
 
