@@ -80,5 +80,7 @@ export const issuesApi = (apiKey) => {
 
     deleteAttachment: (attachmentPk) =>
       http.delete(`attachments/${attachmentPk}/`),
+    activities: (pk) =>
+      http.get(`issues/${pk}/activities/`),
   };
 };

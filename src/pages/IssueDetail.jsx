@@ -16,6 +16,7 @@ export default function IssueDetail() {
   const api = useMemo(() => issuesApi(apiKey), [apiKey]);
 
   const [issue, setIssue] = useState(null);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState("comments");
@@ -34,14 +35,15 @@ export default function IssueDetail() {
     try {
       setLoading(true);
 
-      console.log("ID URL:", pk);
+      const [issueResponse, activitiesResponse] =
+        await Promise.all([
+          api.detail(pk),
+          api.activities(pk),
+        ]);
 
-      const response = await api.detail(pk);
+      setIssue(issueResponse.data);
 
-      console.log("API RESPONSE:", response);
-
-      setIssue(response.data);
-      console.log("ACTIVITIES:", response.data.activities);
+      setActivities(activitiesResponse.data);
 
     } catch (err) {
       console.error("ERROR:", err);
@@ -350,7 +352,7 @@ export default function IssueDetail() {
                 }`}
                 onClick={() => setActiveTab("activities")}
               >
-                {issue.activities?.length || 0} Activities
+                {activities.length} Activities
               </button>
             </div>
 
@@ -489,12 +491,12 @@ export default function IssueDetail() {
                 activeTab === "activities" ? "active" : ""
               }`}
             >
-              {!issue.activities?.length ? (
+              {!activities.length ? (
                 <div className="description empty">
                   No activities yet.
                 </div>
               ) : (
-                issue.activities.map((activity) => (
+                activities.map((activity) => (
                   <div
                     className="activity-item"
                     key={activity.id}
