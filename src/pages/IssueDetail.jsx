@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useUser } from "../App";
 import { issuesApi } from "../api/issues";
+import { settingsApi } from "../api/settings";
 import "../style/issue_detail.css";
 
 export default function IssueDetail() {
@@ -25,7 +26,15 @@ export default function IssueDetail() {
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState("");
 
+  const [statuses, setStatuses] = useState([]);
+  const [statusOpen, setStatusOpen] = useState(false);
+
   const fileInputRef = useRef(null);
+
+  const settings = useMemo(
+    () => settingsApi(apiKey),
+    [apiKey]
+  );
 
   useEffect(() => {
     loadIssue();
@@ -35,15 +44,24 @@ export default function IssueDetail() {
     try {
       setLoading(true);
 
-      const [issueResponse, activitiesResponse] =
-        await Promise.all([
-          api.detail(pk),
-          api.activities(pk),
-        ]);
+      const [
+        issueResponse,
+        activitiesResponse,
+        settingsResponse
+      ] = await Promise.all([
+        api.detail(pk),
+        api.activities(pk),
+        settings.getAll()
+      ]);
+      
 
       setIssue(issueResponse.data);
 
       setActivities(activitiesResponse.data);
+
+      setStatuses(
+        settingsResponse.data.statuses || []
+      );
 
     } catch (err) {
       console.error("ERROR:", err);
@@ -136,6 +154,39 @@ export default function IssueDetail() {
     }
   }
 
+  async function handleChangeStatus(status) {
+    const previousStatus = issue.status;
+
+    try {
+      // cambio visual inmediato
+      setIssue(prev => ({
+        ...prev,
+        status: status.name
+      }));
+
+      setStatusOpen(false);
+
+      await api.update(pk,{
+      ...issue,
+      status: status.id,
+      created_by: issue.created_by?.id,
+      assigned_to: issue.assigned_to?.id,
+      type: issue.type?.id || issue.type,
+      severity: issue.severity?.id || issue.severity,
+      priority: issue.priority?.id || issue.priority
+    });
+
+    } catch(err){
+
+      setIssue(prev => ({
+        ...prev,
+        status: previousStatus
+      }));
+
+      console.error(err);
+    }
+  }
+
   async function handleDeleteComment(commentId) {
     const confirmDelete = window.confirm(
       "Delete this comment?"
@@ -199,7 +250,7 @@ export default function IssueDetail() {
   return (
     <div>
       {/* BACK */}
-      <Link to="/issues" className="back-link">
+      <Link to="/" className="back-link">
         ← Back to issues
       </Link>
 
@@ -538,10 +589,48 @@ export default function IssueDetail() {
         <aside className="card">
           <div className="card-body">
             {/* STATUS */}
-            <button className="status-selector">
-              <span>{issue.status || "Open"}</span>
-              <span>▾</span>
-            </button>
+            {issue.created_by?.username === currentUser.username ? (
+
+              <div className="status-dropdown">
+                <button
+                  className="status-selector"
+                  onClick={() =>
+                    setStatusOpen(!statusOpen)
+                  }
+                >
+                  <span>
+                    {issue.status || "Open"}
+                  </span>
+
+                  <span>
+                    {statusOpen ? "▴" : "▾"}
+                  </span>
+                </button>
+
+                {statusOpen && (
+                  <div className="status-menu">
+                    {statuses.map((status) => (
+                      <button
+                        key={status.id}
+                        className="status-option"
+                        onClick={() =>
+                          handleChangeStatus(status)
+                        }
+                      >
+                        {status.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            ) : (
+
+              <div className="status-selector readonly">
+                <span>{issue.status || "Open"}</span>
+              </div>
+
+            )}
 
             {/* META */}
             <div className="meta-row">
