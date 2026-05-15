@@ -16,12 +16,13 @@ export const usersApi = (apiKey) => {
     assignedIssues: (username, params = {}) =>
       http.get(`users/${username}/issues/`, { params }),
 
-    // PUT /api/users/bio/
+    // PUT /api/users/me/bio/
     updateBio: (bio) =>
-      http.put("users/bio/", { bio }),
+      http.put("users/me/bio/", { bio }),
 
-    // POST /api/users/:username/reset-avatar/
-    resetAvatar: (username) =>
-      http.post(`users/${username}/reset-avatar/`),
+    // POST /api/users/me/reset-avatar/
+    resetAvatar: () =>
+      http.post(`users/me/reset-avatar/`),
+
   };
 };
