@@ -18,7 +18,16 @@
   .issue-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
   .issue-meta strong { color: var(--text); font-weight: 500; }
   .description { font-size: 13px; line-height: 1.7; }
-  .description.empty { color: var(--text-hint); font-style: italic; }
+  .description.empty { 
+    color: var(--text-hint); 
+    font-style: italic;
+  }
+
+  .comments.empty { 
+    color: var(--text-hint); 
+    font-style: italic;
+    margin-bottom: 18px;
+  }
 
   .attach-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -244,27 +253,16 @@
 }
 
 .status-option{
-  width:100%;
-  padding:10px 12px;
-
-  border:none;
-  background:white;
-
-  text-align:left;
-
-  cursor:pointer;
-
-  font-size:13px;
-  font-family:inherit;
-
-  color: var(--text);   /* ← IMPORTANTE */
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 
-.status-option:hover{
-  background:#f3f4f6;
-}
+.status-dot{
+  width:10px;
+  height:10px;
 
-.status-selector.readonly{
-  cursor: default;
-  pointer-events: none;
+  border-radius:50%;
+
+  flex-shrink:0;
 }

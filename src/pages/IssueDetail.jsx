@@ -5,6 +5,7 @@ import { useUser } from "../App";
 import { issuesApi } from "../api/issues";
 import { settingsApi } from "../api/settings";
 import "../style/issue_detail.css";
+import ConfirmDelete from "../pages/ConfirmDelete";
 
 export default function IssueDetail() {
   const { pk } = useParams();
@@ -28,6 +29,13 @@ export default function IssueDetail() {
 
   const [statuses, setStatuses] = useState([]);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
+
+  const currentStatus = statuses.find(
+    (s) =>
+      s.name ===
+      (issue?.status?.name || issue?.status)
+  );
 
   const fileInputRef = useRef(null);
 
@@ -71,19 +79,16 @@ export default function IssueDetail() {
   }
 
   async function handleDeleteIssue() {
-    const confirmDelete = window.confirm(
-      "¿Seguro que quieres eliminar este issue?"
-    );
+    setConfirmData({
+      title:"Delete issue",
+      message:"Are you sure you want to delete this issue?",
 
-    if (!confirmDelete) return;
+      action: async () => {
+        await api.remove(pk);
 
-    try {
-      await api.remove(pk);
-
-      navigate("/issues");
-    } catch (err) {
-      console.error(err);
-    }
+        navigate("/");
+      }
+    });
   }
 
   async function handleAddComment() {
@@ -114,14 +119,30 @@ export default function IssueDetail() {
     }
   }
 
-  async function handleDeleteAttachment(attachmentId) {
-    try {
-      await api.deleteAttachment(attachmentId);
+  async function handleDeleteAttachment(
+    attachmentId
+  ) {
 
-      loadIssue();
-    } catch (err) {
-      console.error(err);
-    }
+    setConfirmData({
+
+      title:"Delete attachment",
+
+      message:
+        "Are you sure you want to delete this attachment?",
+
+      action: async ()=>{
+
+        await api.deleteAttachment(
+          pk,
+          attachmentId
+        );
+
+        await loadIssue();
+
+      }
+
+    });
+
   }
 
   async function handleToggleWatch() {
@@ -187,20 +208,30 @@ export default function IssueDetail() {
     }
   }
 
-  async function handleDeleteComment(commentId) {
-    const confirmDelete = window.confirm(
-      "Delete this comment?"
-    );
+  async function handleDeleteComment(
+    commentId
+  ) {
 
-    if (!confirmDelete) return;
+    setConfirmData({
 
-    try {
-      await api.deleteComment(pk, commentId);
+      title:"Delete comment",
 
-      loadIssue();
-    } catch (err) {
-      console.error(err);
-    }
+      message:
+        "Delete this comment?",
+
+      action: async ()=>{
+
+        await api.deleteComment(
+          pk,
+          commentId
+        );
+
+        loadIssue();
+
+      }
+
+    });
+
   }
 
   async function handleRemoveDeadline() {
@@ -414,7 +445,7 @@ export default function IssueDetail() {
               }`}
             >
               {!issue.comments?.length ? (
-                <div className="description empty">
+                <div className="comments empty">
                   No comments yet.
                 </div>
               ) : (
@@ -594,6 +625,10 @@ export default function IssueDetail() {
               <div className="status-dropdown">
                 <button
                   className="status-selector"
+                  style={{
+                    background:
+                      currentStatus?.color || "#4a5568"
+                  }}
                   onClick={() =>
                     setStatusOpen(!statusOpen)
                   }
@@ -617,7 +652,14 @@ export default function IssueDetail() {
                           handleChangeStatus(status)
                         }
                       >
-                        {status.name}
+                        <span
+                          className="status-dot"
+                          style={{
+                            background: status.color
+                          }}
+                        />
+
+                        <span>{status.name}</span>
                       </button>
                     ))}
                   </div>
@@ -626,8 +668,16 @@ export default function IssueDetail() {
 
             ) : (
 
-              <div className="status-selector readonly">
-                <span>{issue.status || "Open"}</span>
+              <div
+                className="status-selector readonly"
+                style={{
+                  background:
+                    currentStatus?.color || "#4a5568"
+                }}
+              >
+                <span>
+                  {issue.status || "Open"}
+                </span>
               </div>
 
             )}
@@ -736,6 +786,32 @@ export default function IssueDetail() {
           </div>
         </aside>
       </div>
+        <ConfirmDelete
+          open={!!confirmData}
+          title={confirmData?.title}
+          message={confirmData?.message}
+          confirmText="Delete"
+          variant="danger"
+          onCancel={() =>
+            setConfirmData(null)
+          }
+          onConfirm={async()=>{
+
+            try{
+
+              await confirmData?.action?.();
+
+            }catch(err){
+
+              console.error(err);
+
+            }
+
+            setConfirmData(null);
+
+          }}
+        />
+
     </div>
   );
 }
