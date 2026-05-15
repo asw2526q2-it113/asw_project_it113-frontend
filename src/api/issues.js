@@ -1,12 +1,16 @@
 import { authClient } from "./client";
+import qs from "qs";
 
 export const issuesApi = (apiKey) => {
   const http = authClient(apiKey);
 
   return {
     // GET /api/issues/?q=...&status=...
-    list: (params = {}) =>
-      http.get("issues/", { params }),
+    list: (params) =>
+      http.get("issues/", {
+        params,
+        paramsSerializer: (p) => qs.stringify(p, { arrayFormat: "repeat", skipNulls: true })
+      }),
 
     // GET /api/issues/:pk/
     detail: (pk) =>

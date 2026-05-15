@@ -25,8 +25,10 @@ export default function IssueList() {
   const [pendingFilters, setPendingFilters] = useState(data.filters);
 
   const refreshIssues = async (filtersToUse) => {
+    console.log("🔍 Filtres enviats:", filtersToUse);
     try {
       const resIssues = await apiIssues.list(filtersToUse);
+      console.log("📦 Resposta API:", resIssues.data);
       setData(prev => ({
         ...prev,
         issues: resIssues.data.issues || []
@@ -83,11 +85,13 @@ export default function IssueList() {
 
   const handleFiltersSubmit = async (e) => {
     e.preventDefault();
+    const newFilters = { ...pendingFilters};
+    console.log("📨 pendingFilters al submit:", newFilters);
     setData(prev => ({
       ...prev,
-      filters: pendingFilters
+      filters: newFilters
     }));
-    await refreshIssues(pendingFilters);
+    await refreshIssues(newFilters);
   };
 
   const handleTagsToggle = e => setTagsVisible(e.target.checked);
