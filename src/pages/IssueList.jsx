@@ -64,6 +64,28 @@ export default function IssueList() {
     }
   };
 
+  const SortableHeader = ({ column, label }) => {
+    const isAsc = pendingFilters.order_by === column;
+    const isDesc = pendingFilters.order_by === `-${column}`;
+    return (
+      <th style={{ width: column === "issue" ? undefined : "36px" }}>
+        {label}
+        <span className="sort-link"
+          style={{cursor: "pointer", fontWeight: isAsc ? 700 : 400}}
+          onClick={() => handleSortOrder(column)}
+          aria-label={`Sort by ${label} ascending`}>
+          ▲
+        </span>
+        <span className="sort-link"
+          style={{cursor: "pointer", fontWeight: isDesc ? 700 : 400, marginLeft: 3}}
+          onClick={() => handleSortOrder(column)}
+          aria-label={`Sort by ${label} descending`}>
+          ▼
+        </span>
+      </th>
+    );
+  };
+
   useEffect(() => { fetchInitialData(); }, [currentUser]);
   useEffect(() => {
     document.body.classList.toggle("tags-hidden", !tagsVisible);
@@ -71,6 +93,10 @@ export default function IssueList() {
   useEffect(() => {
     setPendingFilters(data.filters);
   }, [data.filters]);
+  useEffect(() => {
+    refreshIssues(pendingFilters);
+    setData(prev => ({ ...prev, filters: pendingFilters }));
+  }, [pendingFilters.order_by]);
 
 
   if (loading) return <div style={{ padding: 40, color: "var(--text-muted)" }}>Loading issues…</div>;
@@ -105,6 +131,17 @@ export default function IssueList() {
         : [...currentValues, stringId];
 
       return { ...prev, [filterType]: newValues };
+    });
+  };
+
+  const handleSortOrder = (column) => {
+    setPendingFilters(prev => {
+      const wasAsc = prev.order_by === column;
+      const wasDesc = prev.order_by === `-${column}`;
+      let newOrderBy = column;
+      if (wasAsc) newOrderBy = `-${column}`;
+      if (wasDesc) newOrderBy = column;
+      return {...prev, order_by: newOrderBy};
     });
   };
 
@@ -256,13 +293,13 @@ export default function IssueList() {
             <table className="issues-table">
               <thead>
                 <tr>
-                  <th style={{ width: "36px" }}>TYPE</th>
-                  <th style={{ width: "36px" }}>SEVERITY</th>
-                  <th style={{ width: "36px" }}>PRIORITY</th>
-                  <th>ISSUE</th>
-                  <th style={{ width: "150px" }}>STATUS</th>
-                  <th style={{ width: "110px" }}>MODIFIED</th>
-                  <th style={{ width: "70px" }}>ASSIGN</th>
+                  <SortableHeader column="type" label="TYPE" />
+                  <SortableHeader column="severity" label="SEVERITY" />
+                  <SortableHeader column="priority" label="PRIORITY" />
+                  <SortableHeader column="issue" label="ISSUE" />
+                  <SortableHeader column="status" label="STATUS" />
+                  <SortableHeader column="modified" label="MODIFIED" />
+                  <SortableHeader column="assigned_to" label="ASSIGN" />
                 </tr>
               </thead>
               <tbody>
