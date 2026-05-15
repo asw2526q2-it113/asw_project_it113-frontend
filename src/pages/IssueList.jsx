@@ -234,7 +234,7 @@ export default function IssueList() {
               <div className="filters-actions">
                 <button type="submit" className="btn btn-teal" >Apply filters</button>
                 <button type="button" className="btn btn-outline" onClick={() => {
-                  const reset = { type: [], severity: [], priority: [], status: [], tag: [], assigned_to: [], order_by: "", q: "" };
+                  const reset = { type: [], severity: [], priority: [], status: [], tag: [], assigned_to: [] };
                   setPendingFilters(reset);
                   setData(prev => ({ ...prev, filters: reset }));
                   refreshIssues(reset);
