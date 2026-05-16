@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useUser } from "../App";
 import { usersApi } from "../api/users";
+import { issuesApi } from "../api/issues";
 
-import "../style/user_porfile.css";
+import "../style/user_profile.css";
 import "../style/issues_table_list.css";
 
 function getInitials(username) {
@@ -140,7 +141,15 @@ function IssueTable({ issues, emptyText }) {
   );
 }
 
-function CommentsList({ comments }) {
+function CommentsList({
+  comments,
+  canManageComments,
+  onEditComment,
+  onDeleteComment,
+}) {
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editDraft, setEditDraft] = useState("");
+
   if (!comments || comments.length === 0) {
     return (
       <div className="empty-profile-state">
@@ -149,22 +158,93 @@ function CommentsList({ comments }) {
     );
   }
 
+  function startEditing(comment) {
+    setEditingCommentId(comment.id);
+    setEditDraft(comment.content || "");
+  }
+
+  function cancelEditing() {
+    setEditingCommentId(null);
+    setEditDraft("");
+  }
+
+  async function submitEdit(comment) {
+    await onEditComment(comment, editDraft);
+    setEditingCommentId(null);
+    setEditDraft("");
+  }
+
   return (
     <div className="comments-list">
-      {comments.map((comment) => (
-        <div key={comment.id} className="comment-card">
-          <Link to={`/issues/${comment.issue}`}>
-            Issue #{comment.issue}
-          </Link>
+      {comments.map((comment) => {
+        const isEditing = editingCommentId === comment.id;
 
-          <div className="comment-meta">
-            {formatDate(comment.created_at)}
-            {comment.is_edited && " · edited"}
+        return (
+          <div key={comment.id} className="comment-card">
+            <Link to={`/issues/${comment.issue}`}>
+              Issue #{comment.issue}
+            </Link>
+
+            <div className="comment-meta">
+              {formatDate(comment.created_at)}
+              {comment.is_edited && " · edited"}
+            </div>
+
+            {isEditing ? (
+              <div className="profile-comment-edit">
+                <textarea
+                  value={editDraft}
+                  onChange={(event) => setEditDraft(event.target.value)}
+                  className="profile-comment-textarea"
+                />
+
+                <div className="profile-comment-actions">
+                  <button
+                    type="button"
+                    className="profile-comment-cancel"
+                    onClick={cancelEditing}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    className="profile-comment-save"
+                    onClick={() => submitEdit(comment)}
+                    disabled={!editDraft.trim()}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p>{comment.content}</p>
+
+                {canManageComments && (
+                  <div className="profile-comment-actions">
+                    <button
+                      type="button"
+                      className="profile-comment-edit-btn"
+                      onClick={() => startEditing(comment)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      className="profile-comment-delete-btn"
+                      onClick={() => onDeleteComment(comment)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-
-          <p>{comment.content}</p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -182,7 +262,8 @@ export default function UserProfile() {
 
   const [activeTab, setActiveTab] = useState("assigned");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // errores graves
+  const [toastError, setToastError] = useState(""); // errores pequeños
 
   const [editingBio, setEditingBio] = useState(false);
   const [bioDraft, setBioDraft] = useState("");
@@ -191,67 +272,77 @@ export default function UserProfile() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
-    async function loadUserProfile() {
-      if (!currentUser?.apiKey) {
-        setError("No API key found.");
-        setLoading(false);
-        return;
+  async function loadUserProfile() {
+    if (!currentUser?.apiKey) {
+      setError("No API key found.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const api = usersApi(currentUser.apiKey);
+
+      const profileRes = await api.profile(username);
+
+      setProfile(profileRes.data);
+      setBioDraft(profileRes.data.bio || "");
+
+      try {
+        const assignedRes = await api.assignedIssues(username);
+        setAssignedIssues(assignedRes.data.issues || []);
+      } catch (err) {
+        console.error("Could not load assigned issues:", err);
+        setAssignedIssues([]);
       }
 
       try {
-        setLoading(true);
-        setError("");
-
-        const api = usersApi(currentUser.apiKey);
-
-        const profilePromise = api.profile(username);
-        const assignedPromise = api.assignedIssues(username);
-        const commentsPromise = api.comments(username);
-
-        const requests = [
-          profilePromise,
-          assignedPromise,
-          commentsPromise,
-        ];
-
-        if (isOwnProfile) {
-          requests.push(api.watchedIssues(username));
-        }
-
-        const responses = await Promise.all(requests);
-
-        const profileRes = responses[0];
-        const assignedRes = responses[1];
-        const commentsRes = responses[2];
-        const watchedRes = responses[3];
-
-        setProfile(profileRes.data);
-        setBioDraft(profileRes.data.bio || "");
-
-        setAssignedIssues(assignedRes.data.issues || []);
+        const commentsRes = await api.comments(username);
         setComments(commentsRes.data.comments || []);
+      } catch (err) {
+        console.error("Could not load comments:", err);
+        setComments([]);
+      }
 
-        if (watchedRes) {
+      if (isOwnProfile) {
+        try {
+          const watchedRes = await api.watchedIssues();
           setWatchedIssues(watchedRes.data.issues || []);
-        } else {
+        } catch (err) {
+          console.error("Could not load watched issues:", err);
           setWatchedIssues([]);
         }
-      } catch (err) {
-        console.error(err);
-
-        const message =
-          err.response?.data?.error ||
-          err.response?.data?.detail ||
-          "Could not load user profile.";
-
-        setError(message);
-      } finally {
-        setLoading(false);
+      } else {
+        setWatchedIssues([]);
       }
-    }
+    } catch (err) {
+      console.error(err);
 
-    loadUserProfile();
-  }, [username, currentUser?.apiKey, isOwnProfile]);
+      const message =
+        err.response?.data?.error ||
+        err.response?.data?.detail ||
+        "Could not load user profile.";
+
+      setError(message);
+      setProfile(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadUserProfile();
+
+  function showToastError(message) {
+  setToastError(message);
+
+  setTimeout(() => {
+    setToastError("");
+  }, 4000);
+}
+}, [username, currentUser?.apiKey, isOwnProfile]);
+
 
   async function handleSaveBio(event) {
     event.preventDefault();
@@ -261,7 +352,7 @@ export default function UserProfile() {
       setError("");
 
       const api = usersApi(currentUser.apiKey);
-      const response = await api.updateBio(username, bioDraft);
+      const response = await api.updateBio(bioDraft);
 
       setProfile((prev) => ({
         ...prev,
@@ -277,7 +368,7 @@ export default function UserProfile() {
         err.response?.data?.detail ||
         "Could not update biography.";
 
-      setError(message);
+      showToastError(message);
     } finally {
       setSavingBio(false);
     }
@@ -293,7 +384,7 @@ export default function UserProfile() {
       setError("");
 
       const api = usersApi(currentUser.apiKey);
-      const response = await api.updateAvatar(username, file);
+      const response = await api.updateAvatar(file);
 
       setProfile((prev) => ({
         ...prev,
@@ -314,7 +405,7 @@ export default function UserProfile() {
           ? "Could not update avatar. Backend returned an internal error."
           : "Could not update avatar.");
 
-      setError(message);
+      showToastError(message);
     } finally {
       setUploadingAvatar(false);
     }
@@ -326,7 +417,7 @@ export default function UserProfile() {
       setError("");
 
       const api = usersApi(currentUser.apiKey);
-      await api.resetAvatar(username);
+      await api.resetAvatar();
 
       setProfile((prev) => ({
         ...prev,
@@ -340,12 +431,74 @@ export default function UserProfile() {
         err.response?.data?.detail ||
         "Could not reset avatar.";
 
-      setError(message);
+      showToastError(message);
     } finally {
       setUploadingAvatar(false);
     }
   }
 
+  async function handleEditComment(comment, newContent) {
+  if (!newContent.trim()) return;
+
+  try {
+    const api = issuesApi(currentUser.apiKey);
+
+    const response = await api.editComment(
+      comment.issue,
+      comment.id,
+      newContent
+    );
+
+    setComments((prevComments) =>
+      prevComments.map((item) =>
+        item.id === comment.id
+          ? {
+              ...item,
+              content: response.data.content || newContent,
+              updated_at: response.data.updated_at || item.updated_at,
+              is_edited: true,
+            }
+          : item
+      )
+    );
+  } catch (err) {
+    console.error("Could not edit comment:", err.response?.data || err);
+
+    const message =
+      err.response?.data?.content?.[0] ||
+      err.response?.data?.error ||
+      err.response?.data?.detail ||
+      "Could not edit comment.";
+
+    showToastError(message);
+  }
+}
+
+async function handleDeleteComment(comment) {
+  try {
+    const api = issuesApi(currentUser.apiKey);
+
+    await api.deleteComment(comment.issue, comment.id);
+
+    setComments((prevComments) =>
+      prevComments.filter((item) => item.id !== comment.id)
+    );
+
+    setProfile((prev) => ({
+      ...prev,
+      count_comments: Math.max((prev?.count_comments || 1) - 1, 0),
+    }));
+  } catch (err) {
+    console.error("Could not delete comment:", err.response?.data || err);
+
+    const message =
+      err.response?.data?.error ||
+      err.response?.data?.detail ||
+      "Could not delete comment.";
+
+    showToastError(message);
+  }
+}
   if (loading) {
     return <div className="empty-profile-state">Loading profile...</div>;
   }
@@ -358,7 +511,14 @@ export default function UserProfile() {
     return <div className="empty-profile-state">User not found.</div>;
   }
 
-  return (
+ return (
+  <>
+    {toastError && (
+      <div className="profile-toast-error">
+        {toastError}
+      </div>
+    )}
+
     <div className="profile-layout">
       <aside className="profile-sidebar">
         <div className="avatar-edit-container">
@@ -480,7 +640,6 @@ export default function UserProfile() {
       </aside>
 
       <main className="profile-content">
-        {error && <div className="alert alert-error">{error}</div>}
 
         <nav className="tabs">
           <button
@@ -526,10 +685,16 @@ export default function UserProfile() {
           )}
 
           {activeTab === "comments" && (
-            <CommentsList comments={comments} />
+            <CommentsList
+              comments={comments}
+              canManageComments={isOwnProfile}
+              onEditComment={handleEditComment}
+              onDeleteComment={handleDeleteComment}
+            />
           )}
         </section>
       </main>
     </div>
+    </>
   );
 }

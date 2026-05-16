@@ -16,33 +16,32 @@ export const usersApi = (apiKey) => {
     assignedIssues: (username, params = {}) =>
       http.get(`users/${username}/issues/`, { params }),
 
-    // GET /api/users/:username/watched-issues/
-    // Solo se puede consultar para el propio usuario autenticado
-    watchedIssues: (username, params = {}) =>
-      http.get(`users/${username}/watched-issues/`, { params }),
+    // GET /api/users/me/watched-issues/
+    watchedIssues: (params = {}) =>
+      http.get("users/me/watched-issues/", { params }),
 
     // GET /api/users/:username/comments/
     comments: (username) =>
       http.get(`users/${username}/comments/`),
 
-    // PATCH /api/users/:username/bio/
-    updateBio: (username, bio) =>
-      http.patch(`users/${username}/bio/`, { bio }),
+    //DELETE /api/issues/:pk/comments/:comment_pk/
+    deleteComment: (pk, commentPk) =>
+      http.delete(`issues/${pk}/comments/${commentPk}/`),
 
-    // PUT /api/users/:username/avatar/
-    updateAvatar: (username, file) => {
+    // PATCH /api/users/me/bio/
+    updateBio: (bio) =>
+      http.patch("users/me/bio/", { bio }),
+
+    // PUT /api/users/me/avatar/
+    updateAvatar: (file) => {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      return http.put(`users/${username}/avatar/`, formData, {
-        headers: {
-          "Content-Type": undefined,
-        },
-      });
+      return http.put("users/me/avatar/", formData);
     },
 
-    // POST /api/users/:username/reset-avatar/
-    resetAvatar: (username) =>
-      http.post(`users/${username}/reset-avatar/`),
+    // POST /api/users/me/reset-avatar/
+    resetAvatar: () =>
+      http.post("users/me/reset-avatar/"),
   };
 };

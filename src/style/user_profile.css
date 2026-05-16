@@ -569,3 +569,161 @@
   color: var(--teal);
   text-decoration: underline;
 }
+
+.profile-content .meta-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.profile-content .color-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.profile-toast-error {
+  position: fixed;
+  top: 70px;
+  right: 28px;
+  z-index: 9999;
+
+  max-width: 360px;
+  padding: 12px 16px;
+
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  animation: toastSlideIn 0.2s ease;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profile-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.profile-comment-edit-btn,
+.profile-comment-delete-btn,
+.profile-comment-cancel {
+  min-width: 72px;
+  height: 32px;
+  padding: 0 14px;
+
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: #ffffff;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.profile-comment-edit-btn {
+  color: var(--teal-dark);
+  border-color: rgba(78, 205, 196, 0.45);
+}
+
+.profile-comment-edit-btn:hover {
+  background: rgba(78, 205, 196, 0.08);
+  border-color: var(--teal);
+  color: var(--teal-dark);
+}
+
+.profile-comment-delete-btn {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.profile-comment-delete-btn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.profile-comment-cancel {
+  color: var(--text-muted);
+}
+
+.profile-comment-cancel:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.profile-comment-edit {
+  margin-top: 10px;
+}
+
+.profile-comment-textarea {
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  background: white;
+}
+
+.profile-comment-textarea:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.15);
+}
+
+.profile-comment-save {
+  height: 32px;
+  padding: 0 14px;
+
+  border: none;
+  border-radius: 8px;
+  background: var(--teal);
+  color: white;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.profile-comment-save:hover {
+  background: var(--teal-dark);
+}
+
+.profile-comment-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
