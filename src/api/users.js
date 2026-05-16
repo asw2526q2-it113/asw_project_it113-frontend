@@ -24,15 +24,9 @@ export const usersApi = (apiKey) => {
     comments: (username) =>
       http.get(`users/${username}/comments/`),
 
-    //DELETE /api/issues/:pk/comments/:comment_pk/
-    deleteComment: (pk, commentPk) =>
-      http.delete(`issues/${pk}/comments/${commentPk}/`),
-
     // PATCH /api/users/me/bio/
     updateBio: (bio) =>
       http.patch("users/me/bio/", { bio }),
-
-  
 
     // PUT /api/users/me/avatar/
     updateAvatar: (file) => {

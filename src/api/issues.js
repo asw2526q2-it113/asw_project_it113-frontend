@@ -58,7 +58,7 @@ export const issuesApi = (apiKey) => {
       http.put(`issues/${pk}/comments/${commentPk}/`, { content }),
 
     deleteComment: (pk, commentPk) =>
-      http.delete(`issues/${pk}/comments/${commentPk}/delete/`),
+      http.delete(`issues/${pk}/comments/${commentPk}/`),
 
     // ── Attachments ─────────────────────────────────────────────────────────
     addAttachment: (pk, file) => {

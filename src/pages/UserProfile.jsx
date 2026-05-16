@@ -270,6 +270,15 @@ export default function UserProfile() {
   const [savingBio, setSavingBio] = useState(false);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
+
+  function showToastError(message) {
+  setToastError(message);
+
+  setTimeout(() => {
+    setToastError("");
+  }, 4000);
+}
 
   useEffect(() => {
   async function loadUserProfile() {
@@ -334,13 +343,6 @@ export default function UserProfile() {
 
   loadUserProfile();
 
-  function showToastError(message) {
-  setToastError(message);
-
-  setTimeout(() => {
-    setToastError("");
-  }, 4000);
-}
 }, [username, currentUser?.apiKey, isOwnProfile]);
 
 
@@ -488,6 +490,8 @@ async function handleDeleteComment(comment) {
       ...prev,
       count_comments: Math.max((prev?.count_comments || 1) - 1, 0),
     }));
+
+    setCommentToDelete(null);
   } catch (err) {
     console.error("Could not delete comment:", err.response?.data || err);
 
@@ -499,6 +503,7 @@ async function handleDeleteComment(comment) {
     showToastError(message);
   }
 }
+
   if (loading) {
     return <div className="empty-profile-state">Loading profile...</div>;
   }
@@ -689,11 +694,60 @@ async function handleDeleteComment(comment) {
               comments={comments}
               canManageComments={isOwnProfile}
               onEditComment={handleEditComment}
-              onDeleteComment={handleDeleteComment}
+              onDeleteComment={setCommentToDelete}
             />
           )}
         </section>
       </main>
+      {commentToDelete && (
+        <div className="comment-delete-overlay">
+          <div className="comment-delete-modal">
+            <button
+              type="button"
+              className="comment-delete-close"
+              onClick={() => setCommentToDelete(null)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+
+            <h2>Delete comment</h2>
+
+            <p className="comment-delete-question">
+              Are you sure you want to delete this comment?
+            </p>
+
+            <div className="comment-delete-preview">
+              {commentToDelete.content}
+            </div>
+
+            <div className="comment-delete-actions">
+              <button
+                type="button"
+                className="comment-delete-cancel"
+                onClick={() => setCommentToDelete(null)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="comment-delete-confirm"
+                onClick={() => handleDeleteComment(commentToDelete)}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v6" />
+                  <path d="M14 11v6" />
+                </svg>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </>
   );
