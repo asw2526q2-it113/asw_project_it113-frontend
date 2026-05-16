@@ -1,6 +1,6 @@
 // pages/IssueDetail.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { data, Link, useNavigate, useParams } from "react-router-dom";
 import { useUser } from "../App";
 import { issuesApi } from "../api/issues";
 import { settingsApi } from "../api/settings";
@@ -31,12 +31,14 @@ export default function IssueDetail() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
 
-  const currentStatus = statuses.find(
-    (s) =>
-      s.name ===
-      (issue?.status?.name || issue?.status)
-  );
+  const issueStatusName =
+    issue?.status_detail?.name ||
+    issue?.status_detail;
 
+  const currentStatus =
+    statuses.find(
+      s => s.name===issueStatusName
+    );
   const fileInputRef = useRef(null);
 
   const settings = useMemo(
@@ -68,7 +70,7 @@ export default function IssueDetail() {
       setActivities(activitiesResponse.data);
 
       setStatuses(
-        settingsResponse.data.statuses || []
+        settingsResponse.data.statuses
       );
 
     } catch (err) {
@@ -176,35 +178,45 @@ export default function IssueDetail() {
   }
 
   async function handleChangeStatus(status) {
-    const previousStatus = issue.status;
-
     try {
-      // cambio visual inmediato
-      setIssue(prev => ({
-        ...prev,
-        status: status.name
-      }));
-
+      // 1. Tanquem el menú desplegable
       setStatusOpen(false);
 
-      await api.update(pk,{
-      ...issue,
-      status: status.id,
-      created_by: issue.created_by?.id,
-      assigned_to: issue.assigned_to?.id,
-      type: issue.type?.id || issue.type,
-      severity: issue.severity?.id || issue.severity,
-      priority: issue.priority?.id || issue.priority
-    });
+      // 2. Construim el payload per tal d'actualitzar la issue
+      const payload = {
+        title: issue.title,
+        description: issue.description,
+        status: status.id, // El nou status
 
-    } catch(err){
+        type: issue.type_detail?.id,
+        severity: issue.severity_detail?.id,
+        priority: issue.priority_detail?.id,
+        
+        assigned_to: issue.assigned_to?.id !== undefined ? issue.assigned_to.id : issue.assigned_to,
+        deadline: issue.deadline,
+        due_date: issue.due_date || issue.deadline,
+        tags_input: issue.tags_detail || []
+      };
 
-      setIssue(prev => ({
-        ...prev,
-        status: previousStatus
-      }));
+      console.log("Enviando petición al servidor con el payload real:", payload);
 
-      console.error(err);
+      // 3. Enviem la petició al servidor
+      await api.update(pk, payload);
+
+      // 4. Si el servidor respon OK, es refresca la pantalla
+      console.log("El servidor aceptó el cambio. Refrescando datos...");
+      await loadIssue();
+
+    } catch (err) {
+      // Si el servidor falla, es queda igual
+      console.error("Error al cambiar el estado en el servidor:");
+      if (err.response?.data) {
+        console.error("Detalle del error del Swagger/Backend:", err.response.data);
+        alert(`No se pudo cambiar el estado. Error del servidor: ${JSON.stringify(err.response.data)}`);
+      } else {
+        console.error(err);
+        alert("Ocurrió un error de red al intentar conectar con el servidor.");
+      }
     }
   }
 
@@ -621,23 +633,26 @@ export default function IssueDetail() {
           <div className="card-body">
             {/* STATUS */}
             {issue.created_by?.username === currentUser.username ? (
-
               <div className="status-dropdown">
                 <button
                   className="status-selector"
                   style={{
-                    background:
-                      currentStatus?.color || "#4a5568"
+                    backgroundColor: `${currentStatus?.color}15`, 
+                    borderColor: `${currentStatus?.color}30`,     
+                    color: currentStatus?.color || "#4a5568"      
                   }}
-                  onClick={() =>
-                    setStatusOpen(!statusOpen)
-                  }
+                  onClick={() => setStatusOpen(!statusOpen)}
                 >
-                  <span>
-                    {issue.status || "Open"}
+                  <span 
+                    className="status-dot" 
+                    style={{ background: currentStatus?.color || "#4a5568" }} 
+                  />
+                  
+                  <span className="status-text">
+                    {issue?.status_detail?.name || "No status"}
                   </span>
-
-                  <span>
+                  
+                  <span className="status-arrow" style={{ color: currentStatus?.color }}>
                     {statusOpen ? "▴" : "▾"}
                   </span>
                 </button>
@@ -645,65 +660,77 @@ export default function IssueDetail() {
                 {statusOpen && (
                   <div className="status-menu">
                     {statuses.map((status) => (
-                      <button
-                        key={status.id}
-                        className="status-option"
-                        onClick={() =>
-                          handleChangeStatus(status)
-                        }
+                      <button 
+                        key={status.id} 
+                        className="status-option" 
+                        style={{
+                          backgroundColor: `${status.color}15`, 
+                          color: status.color,               
+                          marginBottom: '4px'                
+                        }}
+                        onClick={() => handleChangeStatus(status)}
                       >
-                        <span
-                          className="status-dot"
-                          style={{
-                            background: status.color
-                          }}
-                        />
-
-                        <span>{status.name}</span>
+                        <span className="status-dot" style={{ background: status.color }} />
+                        
+                        <span className="status-text">{status.name}</span>
+                      
+                        <span style={{ width: '10px' }} /> 
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-
             ) : (
-
-              <div
+              <div 
                 className="status-selector readonly"
                 style={{
-                  background:
-                    currentStatus?.color || "#4a5568"
+                  backgroundColor: `${currentStatus?.color}15`,
+                  borderColor: `${currentStatus?.color}30`,
+                  color: currentStatus?.color || "#4a5568"
                 }}
               >
-                <span>
-                  {issue.status || "Open"}
+                <span 
+                  className="status-dot" 
+                  style={{ background: currentStatus?.color || "#4a5568" }} 
+                />
+                <span className="status-text">
+                  {issue?.status_detail?.name || "No status"}
                 </span>
               </div>
-
             )}
 
             {/* META */}
             <div className="meta-row">
               <div className="meta-label">type</div>
-
               <div className="meta-value">
-                {issue.type || "Bug"}
+                {/* Si viene un color del detalle, lo usa. Si no, usa un color neutro o el rojo de tu captura */}
+                <span 
+                  className="meta-dot" 
+                  style={{ background: issue.type_detail?.color || "#e11d48" }} 
+                />
+                <span>{issue.type_detail?.name || issue.type_detail || "Not set"}</span>
               </div>
             </div>
 
             <div className="meta-row">
               <div className="meta-label">severity</div>
-
               <div className="meta-value">
-                {issue.severity || "Critical"}
+                <span 
+                  className="meta-dot" 
+                  style={{ background: issue.severity_detail?.color || "#ca8a04" }} 
+                />
+                <span>{issue.severity_detail?.name || issue.severity_detail || "Not set"}</span>
               </div>
             </div>
 
             <div className="meta-row">
               <div className="meta-label">priority</div>
-
               <div className="meta-value">
-                {issue.priority || "High"}
+                <span 
+                  className="meta-dot" 
+                  style={{ background: issue.priority_detail?.color || "#ea580c" }} 
+                />
+                <span>{issue.priority_detail?.name || issue.priority_detail || "Not set"}</span>
               </div>
             </div>
 

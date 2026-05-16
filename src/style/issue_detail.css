@@ -119,11 +119,31 @@
 
   /* Sidebar */
   .status-selector {
-    display: flex; align-items: center; justify-content: space-between;
-    background: #4a5568; border-radius: var(--radius);
-    padding: 8px 12px; color: white; font-weight: 500; font-size: 13px;
-    cursor: pointer; margin-bottom: 14px; border: none; font-family: inherit; width: 100%;
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; /* Fuerza el círculo a la izquierda y la flecha a la derecha */
+    border: 1px solid transparent;
+    border-radius: 12px; 
+    padding: 10px 14px; 
+    font-weight: 600; 
+    font-size: 14px;
+    cursor: pointer; 
+    margin-bottom: 14px; 
+    font-family: inherit; 
+    width: 100%;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
   }
+
+  .status-selector:hover {
+    filter: brightness(0.95); 
+  }
+
+  .status-selector.readonly {
+    cursor: default;
+    filter: none;
+  }
+
   .assign-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
   .assign-placeholder {
     width: 36px; height: 36px; border-radius: 50%;
@@ -236,33 +256,87 @@
   margin-bottom:14px;
 }
 
-.status-menu{
-  position:absolute;
-  top:calc(100% + 6px);
-  left:0;
-  right:0;
-
-  background:white;
-  border:1px solid var(--border);
-  border-radius:10px;
-
-  overflow:hidden;
-
-  z-index:100;
-  box-shadow:0 8px 25px rgba(0,0,0,.08);
+.status-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px; /* Un pelín más redondeado para que sea moderno */
+  padding: 8px; /* Espacio interno para que los botones no toquen los bordes */
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
 }
 
-.status-option{
-  display:flex;
-  align-items:center;
-  gap:8px;
+/* Cada opción del menú */
+.status-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid transparent; /* El color del borde lo manejamos si quieres por JS, pero así queda más limpio */
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
 }
 
-.status-dot{
-  width:10px;
-  height:10px;
+.status-option:last-child {
+  margin-bottom: 0 !important;
+}
 
-  border-radius:50%;
+/* Efecto al pasar el ratón por las opciones */
+.status-option:hover {
+  filter: brightness(0.92); /* Se oscurece un pelín al pasar el ratón */
+  transform: scale(1.02);   /* Un micro-efecto de aumento */
+}
 
-  flex-shrink:0;
+/* Reutilizamos el centrado del texto igual que en el botón principal */
+.status-option .status-text {
+  flex: 1;
+  text-align: center;
+}
+
+/* El punto dentro de las opciones */
+.status-option .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.meta-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.status-text {
+  flex: 1;
+  text-align: center;
+  /* Este margen compensa el espacio de la flecha derecha para que el centro sea real */
+  margin-left: -10px; 
+}
+
+.status-arrow {
+  font-size: 11px;
+  opacity: 0.8;
+  width: 10px; /* Tamaño fijo para equilibrar con el status-dot */
+  text-align: right;
+}
+
+.status-dropdown .status-dot,
+.status-selector .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
