@@ -32,6 +32,8 @@ export const usersApi = (apiKey) => {
     updateBio: (bio) =>
       http.patch("users/me/bio/", { bio }),
 
+  
+
     // PUT /api/users/me/avatar/
     updateAvatar: (file) => {
       const formData = new FormData();
