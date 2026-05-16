@@ -33,7 +33,11 @@ export const usersApi = (apiKey) => {
       const formData = new FormData();
       formData.append("avatar", file);
 
-      return http.put("users/me/avatar/", formData);
+      return http.put("users/me/avatar/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
     },
 
     // POST /api/users/me/reset-avatar/
