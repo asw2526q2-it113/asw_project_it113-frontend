@@ -9,6 +9,7 @@ const USERS = [
   { id: 1, username: "janobe05",    apiKey: "7926960220e90508d851ada1e272695cf2f7eb8c" },
   { id: 2, username: "laiacladjor", apiKey: "4c6723bca35ff43bb65204135e906a6ec2a6bb6a" },
   { id: 3, username: "terceruser",  apiKey: "POSA_AQUI_API_KEY_3" },
+  { id: 4, username: "laiagesse3",  apiKey: "c6937b63c4668fe6f02477fcdea8cc5da74353b1" },
 ];
 
 import IssueList   from "./pages/IssueList";
