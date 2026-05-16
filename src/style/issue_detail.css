@@ -18,7 +18,16 @@
   .issue-meta { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
   .issue-meta strong { color: var(--text); font-weight: 500; }
   .description { font-size: 13px; line-height: 1.7; }
-  .description.empty { color: var(--text-hint); font-style: italic; }
+  .description.empty { 
+    color: var(--text-hint); 
+    font-style: italic;
+  }
+
+  .comments.empty { 
+    color: var(--text-hint); 
+    font-style: italic;
+    margin-bottom: 18px;
+  }
 
   .attach-header {
     display: flex; align-items: center; justify-content: space-between;
@@ -63,7 +72,11 @@
 
   .comment-item { display: flex; gap: 10px; margin-bottom: 16px; }
   .comment-body { flex: 1; }
-  .comment-author { font-size: 12px; font-weight: 500; margin-bottom: 3px; }
+  .comment-author {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
   .comment-author span { color: var(--text-muted); font-weight: 400; margin-left: 6px; }
   .comment-content { font-size: 13px; line-height: 1.6; }
   .comment-textarea {
@@ -75,20 +88,62 @@
   .comment-textarea:focus { outline: none; border-color: var(--teal); }
 
   .activity-item {
-    display: flex; gap: 8px; align-items: baseline;
-    padding: 5px 0; font-size: 12px; color: var(--text-muted);
+    display: flex;
+    gap: 10px;
+
+    padding: 12px 0;
+
     border-bottom: 1px solid var(--border);
   }
-  .activity-item:last-child { border-bottom: none; }
-  .activity-time { white-space: nowrap; flex-shrink: 0; }
+
+  .activity-item:last-child {
+    border-bottom: none;
+  }
+
+  .activity-body {
+    flex: 1;
+  }
+
+  .activity-content {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .activity-time {
+    margin-top: 4px;
+
+    font-size: 11px;
+
+    color: var(--text-hint);
+  }
 
   /* Sidebar */
   .status-selector {
-    display: flex; align-items: center; justify-content: space-between;
-    background: #4a5568; border-radius: var(--radius);
-    padding: 8px 12px; color: white; font-weight: 500; font-size: 13px;
-    cursor: pointer; margin-bottom: 14px; border: none; font-family: inherit; width: 100%;
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; /* Fuerza el círculo a la izquierda y la flecha a la derecha */
+    border: 1px solid transparent;
+    border-radius: 12px; 
+    padding: 10px 14px; 
+    font-weight: 600; 
+    font-size: 14px;
+    cursor: pointer; 
+    margin-bottom: 14px; 
+    font-family: inherit; 
+    width: 100%;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
   }
+
+  .status-selector:hover {
+    filter: brightness(0.95); 
+  }
+
+  .status-selector.readonly {
+    cursor: default;
+    filter: none;
+  }
+
   .assign-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
   .assign-placeholder {
     width: 36px; height: 36px; border-radius: 50%;
@@ -164,4 +219,124 @@
   text-decoration: none;
   cursor: pointer;
   box-sizing: border-box;
+}
+
+.description-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+.comment-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.comment-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.status-dropdown{
+  position: relative;
+  margin-bottom:14px;
+}
+
+.status-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 14px; /* Un pelín más redondeado para que sea moderno */
+  padding: 8px; /* Espacio interno para que los botones no toquen los bordes */
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cada opción del menú */
+.status-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid transparent; /* El color del borde lo manejamos si quieres por JS, pero así queda más limpio */
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.status-option:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Efecto al pasar el ratón por las opciones */
+.status-option:hover {
+  filter: brightness(0.92); /* Se oscurece un pelín al pasar el ratón */
+  transform: scale(1.02);   /* Un micro-efecto de aumento */
+}
+
+/* Reutilizamos el centrado del texto igual que en el botón principal */
+.status-option .status-text {
+  flex: 1;
+  text-align: center;
+}
+
+/* El punto dentro de las opciones */
+.status-option .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.meta-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.status-text {
+  flex: 1;
+  text-align: center;
+  /* Este margen compensa el espacio de la flecha derecha para que el centro sea real */
+  margin-left: -10px; 
+}
+
+.status-arrow {
+  font-size: 11px;
+  opacity: 0.8;
+  width: 10px; /* Tamaño fijo para equilibrar con el status-dot */
+  text-align: right;
+}
+
+.status-dropdown .status-dot,
+.status-selector .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
