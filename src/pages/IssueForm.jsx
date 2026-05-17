@@ -32,6 +32,7 @@ export default function IssueForm() {
   const [tagInput, setTagInput] = useState("");
   const [attachments, setAttachments] = useState([]); // Fitxers nous
   const [existingAttachments, setExistingAttachments] = useState([]); // Fitxers que ja hi eren
+  const [attachmentsToDelete, setAttachmentsToDelete] = useState([]);
   const [meta, setMeta] = useState({ users: [], statuses: [], priorities: [], severities: [], types: [], tags: [] });
   const [errors, setErrors] = useState({});
 
@@ -62,19 +63,19 @@ export default function IssueForm() {
 
         // 2. Si estem editant, demanem la Issue concreta
         if (isEdit) {
-          const resIssue = await apiIssues.getOne(pk);
+          const resIssue = await apiIssues.detail(pk);
           const d = resIssue.data;
           setFormData({
             title: d.title,
             description: d.description,
-            status: d.status?.id || d.status,
-            priority: d.priority?.id || d.priority,
-            severity: d.severity?.id || d.severity,
-            type: d.type?.id || d.type,
-            assigned_to: d.assigned_to?.id || d.assigned_to || "",
+            status: d.status_detail?.id || d.status,
+            priority: d.priority_detail?.id || d.priority,
+            severity: d.severity_detail?.id || d.severity,
+            type: d.type_detail?.id || d.type,
+            assigned_to: d.assigned_to_detail?.id || d.assigned_to || "",
             deadline: d.deadline || ""
           });
-          setTags(d.tags || []);
+          setTags(d.tags_detail?.map(t => t.name) || []);
           setExistingAttachments(d.attachments || []);
         }
       } catch (err) {
@@ -123,15 +124,26 @@ export default function IssueForm() {
     const data = new FormData();
     Object.keys(formData).forEach(key => data.append(key, formData[key]));
     data.append("tags_input", tags.join(","));
-    attachments.forEach(file => data.append("attachments", file));
+    //attachments.forEach(file => data.append("attachments", file));
 
     try {
       if (isEdit) {
         await apiIssues.update(pk, data);
+        for (const attId of attachmentsToDelete) {
+          await apiIssues.deleteAttachment(pk, attId);
+        }
+        for (const file of attachments) {
+          await apiIssues.addAttachment(pk, file);
+        }
+        navigate(`/issues/${pk}`, { state: { message: "Issue updated." } });
       } else {
-        await apiIssues.create(data);
+        const res = await apiIssues.create(data);
+        const issuePk = res.data.id;
+        for (const file of attachments) {
+          await apiIssues.addAttachment(issuePk, file);
+        }
+        navigate("/", { state: { message: "Issue created successfully." } });
       }
-      navigate("/");
     } catch (err) {
       console.log("Error detall:", err.response?.data);
       if (err.response?.data) setErrors(err.response.data);
@@ -202,6 +214,15 @@ export default function IssueForm() {
                   <input type="file" id="fileInput" multiple style={{display:'none'}} onChange={handleFileChange} onClick={(e) => e.target.value = ''} />
 
                   <ul className="file-list-preview" style={{ listStyle: "none", padding: 0 }}>
+                    {existingAttachments.map((att) => (
+                      <li key={att.id} style={{display:'flex', justifyContent:'space-between', alignItems: 'center', padding: "4px 0", fontSize:'12px', color:'var(--teal)'}}>
+                        <span>📎 {att.filename} <span style={{color: "var(--text-muted)"}}>({(att.size / 1024).toFixed(1)} KB)</span></span>
+                        <button type="button" onClick={() => {
+                          setAttachmentsToDelete([...attachmentsToDelete, att.id]);
+                          setExistingAttachments(existingAttachments.filter(a => a.id !== att.id));
+                        }} style={{ border: "none", background: "none", color: "#dc2626", cursor: "pointer", fontSize: "16px" }}>×</button>
+                      </li>
+                    ))}
                     {attachments.map((f, i) => (
                       <li key={i} style={{display:'flex', justifyContent:'space-between', alignItems: 'center', padding: "4px 0", fontSize:'12px', color:'var(--teal)'}}>
                         <span>📎 {f.name} <span style={{color: "var(--text-muted)"}}>({(f.size / 1024).toFixed(1)} KB)</span></span>

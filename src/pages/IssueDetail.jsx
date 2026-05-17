@@ -6,10 +6,14 @@ import { issuesApi } from "../api/issues";
 import { settingsApi } from "../api/settings";
 import "../style/issue_detail.css";
 import ConfirmDelete from "../pages/ConfirmDelete";
+import { useLocation } from "react-router-dom";
 
 export default function IssueDetail() {
   const { pk } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || "");
+
 
   // Ajusta esto a cómo guardas tu apiKey
   const currentUser = useUser();
@@ -292,6 +296,12 @@ export default function IssueDetail() {
 
   return (
     <div>
+      {successMessage && (
+        <div className="alert alert-success">
+          {successMessage}
+          <button className="alert-close" onClick={() => setSuccessMessage("")}>×</button>
+        </div>
+      )}
       {/* BACK */}
       <Link to="/" className="back-link">
         ← Back to issues

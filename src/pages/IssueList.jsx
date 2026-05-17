@@ -5,6 +5,7 @@ import { settingsApi} from "../api/settings.js";
 import { usersApi} from "../api/users.js";
 import "../style/issues_table_list.css";
 import { Link, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 export default function IssueList() {
   const navigate = useNavigate();
@@ -12,6 +13,9 @@ export default function IssueList() {
   const apiIssues = issuesApi(currentUser.apiKey);
   const apiUsers = usersApi(currentUser.apiKey);
   const apiSettings = settingsApi(currentUser.apiKey);
+  const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || "");
+
 
   const [data, setData] = useState({
     issues: [], all_users: [], filters: {
@@ -108,6 +112,12 @@ export default function IssueList() {
 
   return (
     <div>
+      {successMessage && (
+        <div className="alert alert-success">
+          {successMessage}
+          <button className="alert-close" onClick={() => setSuccessMessage("")}>×</button>
+        </div>
+      )}
       <div className="page-header">
         <div className="page-title">Issues</div>
       </div>
