@@ -7,10 +7,14 @@ import { settingsApi } from "../api/settings";
 import { usersApi } from "../api/users";
 import "../style/issue_detail.css";
 import ConfirmDelete from "../pages/ConfirmDelete";
+import { useLocation } from "react-router-dom";
 
 export default function IssueDetail() {
   const { pk } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || "");
+
 
   const currentUser = useUser();
   const apiKey = currentUser.apiKey;
@@ -389,6 +393,12 @@ export default function IssueDetail() {
 
   return (
     <div>
+      {successMessage && (
+        <div className="alert alert-success">
+          {successMessage}
+          <button className="alert-close" onClick={() => setSuccessMessage("")}>×</button>
+        </div>
+      )}
       {/* BACK */}
       <Link to="/" className="back-link">
         ← Back to issues
