@@ -198,7 +198,7 @@ export default function IssueList() {
             </svg>
             NEW ISSUE
           </Link>
-          <a href="/issues/bulk-insert"
+          <Link to="/issues/bulk"
             className="btn"
             style={{
               backgroundColor: "#f1f1f1", color: "#666", border: "1px solid #ccc",
@@ -207,7 +207,7 @@ export default function IssueList() {
             }}>
             <span className="icon" style={{ marginRight: "6px", display: "flex", alignItems: "center" }}>☰</span>
             Bulk Insert
-          </a>
+          </Link>
         </div>
       </div>
 
