@@ -4,12 +4,18 @@ import { issuesApi } from "../api/issues";
 import { settingsApi} from "../api/settings.js";
 import { usersApi} from "../api/users.js";
 import "../style/issues_table_list.css";
+import { Link, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 export default function IssueList() {
+  const navigate = useNavigate();
   const currentUser = useUser();
   const apiIssues = issuesApi(currentUser.apiKey);
   const apiUsers = usersApi(currentUser.apiKey);
   const apiSettings = settingsApi(currentUser.apiKey);
+  const location = useLocation();
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || "");
+
 
   const [data, setData] = useState({
     issues: [], all_users: [], filters: {
@@ -147,6 +153,12 @@ export default function IssueList() {
 
   return (
     <div>
+      {successMessage && (
+        <div className="alert alert-success">
+          {successMessage}
+          <button className="alert-close" onClick={() => setSuccessMessage("")}>×</button>
+        </div>
+      )}
       <div className="page-header">
         <div className="page-title">Issues</div>
       </div>
@@ -220,14 +232,14 @@ export default function IssueList() {
           </label>
         </div>
         <div className="toolbar-right">
-          <a href="/issues/create" className="btn btn-teal">
+          <Link to="/issues/new" className="btn btn-teal">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             NEW ISSUE
-          </a>
-          <a href="/issues/bulk-insert"
+          </Link>
+          <Link to="/issues/bulk"
             className="btn"
             style={{
               backgroundColor: "#f1f1f1", color: "#666", border: "1px solid #ccc",
@@ -236,7 +248,7 @@ export default function IssueList() {
             }}>
             <span className="icon" style={{ marginRight: "6px", display: "flex", alignItems: "center" }}>☰</span>
             Bulk Insert
-          </a>
+          </Link>
         </div>
       </div>
 

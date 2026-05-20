@@ -16,13 +16,32 @@ export const usersApi = (apiKey) => {
     assignedIssues: (username, params = {}) =>
       http.get(`users/${username}/issues/`, { params }),
 
-    // PUT /api/users/me/bio/
+    // GET /api/users/me/watched-issues/
+    watchedIssues: (params = {}) =>
+      http.get("users/me/watched-issues/", { params }),
+
+    // GET /api/users/:username/comments/
+    comments: (username) =>
+      http.get(`users/${username}/comments/`),
+
+    // PATCH /api/users/me/bio/
     updateBio: (bio) =>
-      http.put("users/me/bio/", { bio }),
+      http.patch("users/me/bio/", { bio }),
+
+    // PUT /api/users/me/avatar/
+    updateAvatar: (file) => {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      return http.put("users/me/avatar/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    },
 
     // POST /api/users/me/reset-avatar/
     resetAvatar: () =>
-      http.post(`users/me/reset-avatar/`),
-
+      http.post("users/me/reset-avatar/"),
   };
 };

@@ -62,19 +62,34 @@ export const issuesApi = (apiKey) => {
       http.put(`issues/${pk}/comments/${commentPk}/`, { content }),
 
     deleteComment: (pk, commentPk) =>
-      http.delete(`issues/${pk}/comments/${commentPk}/delete/`),
+      http.delete(`issues/${pk}/comments/${commentPk}/`),
 
     // ── Attachments ─────────────────────────────────────────────────────────
     addAttachment: (pk, file) => {
       const formData = new FormData();
+
       formData.append("file", file);
       formData.append("issue", pk);
-      return authClient(apiKey).post(`issues/${pk}/attachments/`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+
+      return http.post(
+        `issues/${pk}/attachments/`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
     },
 
-    deleteAttachment: (attachmentPk) =>
-      http.delete(`attachments/${attachmentPk}/`),
+    deleteAttachment: (
+      issuePk,
+      attachmentPk
+    ) =>
+      http.delete(
+        `issues/${issuePk}/attachments/${attachmentPk}/`
+      ),
+    activities: (pk) =>
+      http.get(`issues/${pk}/activities/`),
   };
 };
