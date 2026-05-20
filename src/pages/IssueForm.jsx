@@ -7,7 +7,7 @@ import { usersApi } from "../api/users.js";
 import "../style/forms.css";
 
 export default function IssueForm() {
-  const { pk } = useParams(); // Si hi ha PK, estem editant
+  const { pk } = useParams();
   const navigate = useNavigate();
   const currentUser = useUser();
   const apiIssues = issuesApi(currentUser.apiKey);
@@ -83,8 +83,8 @@ export default function IssueForm() {
       }
     };
 
-  fetchInitialData();
-}, [pk, currentUser]);
+    fetchInitialData();
+  }, [pk, currentUser]);
 
   // --- MANEGADORS D'EVENTS ---
   const handleChange = (e) => {
@@ -104,6 +104,50 @@ export default function IssueForm() {
 
   const handleFileChange = (e) => {
     setAttachments([...attachments, ...Array.from(e.target.files)]);
+  };
+
+  const handleDeleteExistingAttachment = async (att) => {
+    try {
+      await apiIssues.deleteAttachment(pk, att.id);
+
+      setExistingAttachments((prev) =>
+        prev.filter((attachment) => attachment.id !== att.id)
+      );
+
+      setAttachmentsToDelete((prev) =>
+        prev.filter((id) => id !== att.id)
+      );
+
+      setErrors((prev) => ({
+        ...prev,
+        general: null,
+      }));
+    } catch (err) {
+      console.error("Error deleting attachment:", err.response?.data || err);
+
+      const status = err.response?.status;
+
+      const backendMessage =
+        err.response?.data?.error ||
+        err.response?.data?.detail ||
+        err.response?.data?.message;
+
+      if (status === 401 || status === 403) {
+        setErrors((prev) => ({
+          ...prev,
+          general: [
+            "You cannot delete this attachment because it was uploaded by another user.",
+          ],
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general: [
+            backendMessage || "The attachment could not be deleted.",
+          ],
+        }));
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -129,12 +173,11 @@ export default function IssueForm() {
     try {
       if (isEdit) {
         await apiIssues.update(pk, data);
-        for (const attId of attachmentsToDelete) {
-          await apiIssues.deleteAttachment(pk, attId);
-        }
+
         for (const file of attachments) {
           await apiIssues.addAttachment(pk, file);
         }
+
         navigate(`/issues/${pk}`, { state: { message: "Issue updated." } });
       } else {
         const res = await apiIssues.create(data);
@@ -150,162 +193,177 @@ export default function IssueForm() {
     }
   };
 
-    return (
-      /* Centrem el formulari i definim que ocupi el 100% fins a un màxim de 860px (com diu el teu CSS) */
-      <div className="issue-form-container" >
-        <Link to="/" className="back-link" style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--text-muted)", fontSize: "12px", textDecoration: "none", marginBottom: "16px" }}>
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6"/>
-          </svg>
-          Back to issues
-        </Link>
+  return (
+    /* Centrem el formulari i definim que ocupi el 100% fins a un màxim de 860px (com diu el teu CSS) */
+    <div className="issue-form-container" >
+      <Link to="/" className="back-link" style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "var(--text-muted)", fontSize: "12px", textDecoration: "none", marginBottom: "16px" }}>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Back to issues
+      </Link>
 
-        {/* Forçem que la targeta s'estengui al 100% de l'espai per activar el Grid real */}
-        <div className="issue-form-card">
-          <form onSubmit={handleSubmit}>
-            <div className="form-layout">
+      {/* Forçem que la targeta s'estengui al 100% de l'espai per activar el Grid real */}
+      <div className="issue-form-card">
+        <form onSubmit={handleSubmit}>
+          <div className="form-layout">
 
-              {/* COLUMNA PRINCIPAL */}
-              <div className="form-main">
-                <div className="form-title">{isEdit ? "Edit issue" : "Create issue"}</div>
+            {/* COLUMNA PRINCIPAL */}
+            <div className="form-main">
+              <div className="form-title">{isEdit ? "Edit issue" : "Create issue"}</div>
 
-                <div className={`field ${errors.title ? 'has-error' : ''}`}>
-                  <label>Subject *</label>
-                  <input type="text" name="title" value={formData.title} onChange={handleChange} />
-                  {errors.title && <div className="error-message">{errors.title[0]}</div>}
+              {errors.general && (
+                <div className="error-message" style={{ marginBottom: "12px" }}>
+                  {errors.general[0]}
                 </div>
+              )}
 
-                <div className="field">
-                  <label>Tags</label>
-                  <div className="tag-editor">
-                    <div className="tag-editor-row">
-                      {/* AFEGIDA LA CLASSE ORIGINAL: className="tag-text-input" */}
-                      <input
-                        type="text"
-                        className="tag-text-input"
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        placeholder="Add tag"
-                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                      />
-                      <button type="button" className="add-tag-square" onClick={handleAddTag}>+</button>
-                    </div>
-                    <div className="selected-tags">
-                      {tags.map(tag => (
-                        <span key={tag} className="selected-tag">
-                          {tag}
-                          <button type="button" className="selected-tag-remove" onClick={() => removeTag(tag)}>&times;</button>
-                        </span>
-                      ))}
-                    </div>
+              <div className={`field ${errors.title ? 'has-error' : ''}`}>
+                <label>Subject *</label>
+                <input type="text" name="title" value={formData.title} onChange={handleChange} />
+                {errors.title && <div className="error-message">{errors.title[0]}</div>}
+              </div>
+
+              <div className="field">
+                <label>Tags</label>
+                <div className="tag-editor">
+                  <div className="tag-editor-row">
+                    {/* AFEGIDA LA CLASSE ORIGINAL: className="tag-text-input" */}
+                    <input
+                      type="text"
+                      className="tag-text-input"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      placeholder="Add tag"
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                    />
+                    <button type="button" className="add-tag-square" onClick={handleAddTag}>+</button>
                   </div>
-                </div>
-
-                <div className="field">
-                  <label>Description</label>
-                  <textarea name="description" value={formData.description} onChange={handleChange}></textarea>
-                </div>
-
-                <div className="field">
-                  <div className="attach-header-row">
-                    <span>Attachments</span>
-                    <button type="button" className="add-btn" onClick={() => document.getElementById('fileInput').click()}>+</button>
+                  <div className="selected-tags">
+                    {tags.map(tag => (
+                      <span key={tag} className="selected-tag">
+                        {tag}
+                        <button type="button" className="selected-tag-remove" onClick={() => removeTag(tag)}>&times;</button>
+                      </span>
+                    ))}
                   </div>
-                  <input type="file" id="fileInput" multiple style={{display:'none'}} onChange={handleFileChange} onClick={(e) => e.target.value = ''} />
-
-                  <ul className="file-list-preview" style={{ listStyle: "none", padding: 0 }}>
-                    {existingAttachments.map((att) => (
-                      <li key={att.id} style={{display:'flex', justifyContent:'space-between', alignItems: 'center', padding: "4px 0", fontSize:'12px', color:'var(--teal)'}}>
-                        <span>📎 {att.filename} <span style={{color: "var(--text-muted)"}}>({(att.size / 1024).toFixed(1)} KB)</span></span>
-                        <button type="button" onClick={() => {
-                          setAttachmentsToDelete([...attachmentsToDelete, att.id]);
-                          setExistingAttachments(existingAttachments.filter(a => a.id !== att.id));
-                        }} style={{ border: "none", background: "none", color: "#dc2626", cursor: "pointer", fontSize: "16px" }}>×</button>
-                      </li>
-                    ))}
-                    {attachments.map((f, i) => (
-                      <li key={i} style={{display:'flex', justifyContent:'space-between', alignItems: 'center', padding: "4px 0", fontSize:'12px', color:'var(--teal)'}}>
-                        <span>📎 {f.name} <span style={{color: "var(--text-muted)"}}>({(f.size / 1024).toFixed(1)} KB)</span></span>
-                        <button type="button" onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} style={{ border: "none", background: "none", color: "#dc2626", cursor: "pointer", fontSize: "16px" }}>×</button>
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </div>
 
-              {/* SIDEBAR (BARRA LATERAL DE 260px) */}
-              <div className="form-sidebar">
-                <div className="field">
-                  <label>Status *</label>
-                  <select name="status" value={formData.status} onChange={handleChange}
-                    className={`status-pill-select ${errors.status ? 'has-error' : ''}`}>
-                    <option value="">— Status —</option>
-                    {meta.statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                  {errors.status && <div className="error-message">{errors.status[0]}</div>}
+              <div className="field">
+                <label>Description</label>
+                <textarea name="description" value={formData.description} onChange={handleChange}></textarea>
+              </div>
+
+              <div className="field">
+                <div className="attach-header-row">
+                  <span>Attachments</span>
+                  <button type="button" className="add-btn" onClick={() => document.getElementById('fileInput').click()}>+</button>
                 </div>
+                <input type="file" id="fileInput" multiple style={{display:'none'}} onChange={handleFileChange} onClick={(e) => e.target.value = ''} />
 
-                <hr className="divider" />
-
-                <div className="field">
-                  <label>Assigned</label>
-                  <select name="assigned_to" value={formData.assigned_to} onChange={handleChange}>
-                    <option value="">Unassigned</option>
-                    {meta.users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
-                  </select>
-                </div>
-
-                <hr className="divider" />
-
-                {/* INTEGRATS ELS CONTENIDORS field-inline-input PER EVITAR L'ENCONGIMENT */}
-                <div className={`field-inline ${errors.type ? 'has-error' : ''}`}>
-                  <label>Type *</label>
-                  <div className="field-inline-input">
-                    <select name="type" value={formData.type} onChange={handleChange}>
-                      <option value="">— Type —</option>
-                      {meta.types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                    {errors.type && <div className="error-message">{errors.type[0]}</div>}
-                  </div>
-                </div>
-
-                <div className={`field-inline ${errors.type ? 'has-error' : ''}`}>
-                  <label>Severity *</label>
-                  <div className="field-inline-input">
-                    <select name="severity" value={formData.severity} onChange={handleChange}>
-                      <option value="">— Severity —</option>
-                      {meta.severities.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    {errors.severity && <div className="error-message">{errors.severity[0]}</div>}
-                  </div>
-                </div>
-
-                <div className={`field-inline ${errors.type ? 'has-error' : ''}`}>
-                  <label>Priority *</label>
-                  <div className="field-inline-input">
-                    <select name="priority" value={formData.priority} onChange={handleChange}>
-                      <option value="">— Priority —</option>
-                      {meta.priorities.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                    {errors.priority && <div className="error-message">{errors.priority[0]}</div>}
-                  </div>
-                </div>
-
-                <div className="field-inline">
-                  <label>Deadline</label>
-                  <div className="field-inline-input">
-                    <input type="date" name="deadline" value={formData.deadline} onChange={handleChange} />
-                  </div>
-                </div>
+                <ul className="file-list-preview" style={{ listStyle: "none", padding: 0 }}>
+                  {existingAttachments.map((att) => (
+                    <li key={att.id} style={{display:'flex', justifyContent:'space-between', alignItems: 'center', padding: "4px 0", fontSize:'12px', color:'var(--teal)'}}>
+                      <span>📎 {att.filename} <span style={{color: "var(--text-muted)"}}>({(att.size / 1024).toFixed(1)} KB)</span></span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExistingAttachment(att)}
+                        style={{
+                          border: "none",
+                          background: "none",
+                          color: "#dc2626",
+                          cursor: "pointer",
+                          fontSize: "16px"
+                        }}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                  {attachments.map((f, i) => (
+                    <li key={i} style={{display:'flex', justifyContent:'space-between', alignItems: 'center', padding: "4px 0", fontSize:'12px', color:'var(--teal)'}}>
+                      <span>📎 {f.name} <span style={{color: "var(--text-muted)"}}>({(f.size / 1024).toFixed(1)} KB)</span></span>
+                      <button type="button" onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} style={{ border: "none", background: "none", color: "#dc2626", cursor: "pointer", fontSize: "16px" }}>×</button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
 
-            <div className="form-footer">
-              <button type="submit" className="btn btn-teal">{isEdit ? "SAVE CHANGES" : "CREATE ISSUE"}</button>
-              <Link to="/" className="btn btn-outline">Cancel</Link>
+            {/* SIDEBAR (BARRA LATERAL DE 260px) */}
+            <div className="form-sidebar">
+              <div className="field">
+                <label>Status *</label>
+                <select name="status" value={formData.status} onChange={handleChange}
+                  className={`status-pill-select ${errors.status ? 'has-error' : ''}`}>
+                  <option value="">— Status —</option>
+                  {meta.statuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+                {errors.status && <div className="error-message">{errors.status[0]}</div>}
+              </div>
+
+              <hr className="divider" />
+
+              <div className="field">
+                <label>Assigned</label>
+                <select name="assigned_to" value={formData.assigned_to} onChange={handleChange}>
+                  <option value="">Unassigned</option>
+                  {meta.users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+                </select>
+              </div>
+
+              <hr className="divider" />
+
+              {/* INTEGRATS ELS CONTENIDORS field-inline-input PER EVITAR L'ENCONGIMENT */}
+              <div className={`field-inline ${errors.type ? 'has-error' : ''}`}>
+                <label>Type *</label>
+                <div className="field-inline-input">
+                  <select name="type" value={formData.type} onChange={handleChange}>
+                    <option value="">— Type —</option>
+                    {meta.types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                  {errors.type && <div className="error-message">{errors.type[0]}</div>}
+                </div>
+              </div>
+
+              <div className={`field-inline ${errors.type ? 'has-error' : ''}`}>
+                <label>Severity *</label>
+                <div className="field-inline-input">
+                  <select name="severity" value={formData.severity} onChange={handleChange}>
+                    <option value="">— Severity —</option>
+                    {meta.severities.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                  {errors.severity && <div className="error-message">{errors.severity[0]}</div>}
+                </div>
+              </div>
+
+              <div className={`field-inline ${errors.type ? 'has-error' : ''}`}>
+                <label>Priority *</label>
+                <div className="field-inline-input">
+                  <select name="priority" value={formData.priority} onChange={handleChange}>
+                    <option value="">— Priority —</option>
+                    {meta.priorities.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  {errors.priority && <div className="error-message">{errors.priority[0]}</div>}
+                </div>
+              </div>
+
+              <div className="field-inline">
+                <label>Deadline</label>
+                <div className="field-inline-input">
+                  <input type="date" name="deadline" value={formData.deadline} onChange={handleChange} />
+                </div>
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          <div className="form-footer">
+            <button type="submit" className="btn btn-teal">{isEdit ? "SAVE CHANGES" : "CREATE ISSUE"}</button>
+            <Link to="/" className="btn btn-outline">Cancel</Link>
+          </div>
+        </form>
       </div>
-    );
+    </div>
+  );
 }

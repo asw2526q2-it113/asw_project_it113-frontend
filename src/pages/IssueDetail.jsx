@@ -1,20 +1,22 @@
 // pages/IssueDetail.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { data, Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
 import { useUser } from "../App";
 import { issuesApi } from "../api/issues";
 import { settingsApi } from "../api/settings";
 import { usersApi } from "../api/users";
 import "../style/issue_detail.css";
 import ConfirmDelete from "../pages/ConfirmDelete";
-import { useLocation } from "react-router-dom";
 
 export default function IssueDetail() {
   const { pk } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const [successMessage, setSuccessMessage] = useState(location.state?.message || "");
 
+  const [successMessage, setSuccessMessage] = useState(
+    location.state?.message || ""
+  );
+  const [errorMessage, setErrorMessage] = useState("");
 
   const currentUser = useUser();
   const apiKey = currentUser.apiKey;
@@ -34,24 +36,25 @@ export default function IssueDetail() {
   const [statuses, setStatuses] = useState([]);
   const [statusOpen, setStatusOpen] = useState(false);
   const [confirmData, setConfirmData] = useState(null);
-  const [users,setUsers]=useState([]);
-  const [assignedOpen,setAssignedOpen]=useState(false);
-  const [watchersOpen,setWatchersOpen]=useState(false);
+  const [users, setUsers] = useState([]);
+  const [assignedOpen, setAssignedOpen] = useState(false);
+  const [watchersOpen, setWatchersOpen] = useState(false);
   const [deadlineInput, setDeadlineInput] = useState("");
 
-  const usersService=useMemo(
-  ()=>usersApi(apiKey),
-  [apiKey]
+  const usersService = useMemo(
+    () => usersApi(apiKey),
+    [apiKey]
   );
-  
+
   const issueStatusName =
     issue?.status_detail?.name ||
     issue?.status_detail;
 
   const currentStatus =
     statuses.find(
-      s => s.name===issueStatusName
+      s => s.name === issueStatusName
     );
+
   const fileInputRef = useRef(null);
 
   const settings = useMemo(
@@ -63,10 +66,18 @@ export default function IssueDetail() {
     loadIssue();
   }, [pk]);
 
+  function showErrorMessage(message) {
+    setErrorMessage(message);
+
+    setTimeout(() => {
+      setErrorMessage("");
+    }, 4000);
+  }
+
   async function loadIssue() {
     try {
       setLoading(true);
-  
+
       const [
         issueResponse,
         activitiesResponse,
@@ -78,18 +89,18 @@ export default function IssueDetail() {
         settings.getAll(),
         usersService.list()
       ]);
-  
+
       setUsers(usersResponse.data);
       setIssue(issueResponse.data);
       setActivities(activitiesResponse.data);
       setStatuses(settingsResponse.data.statuses);
-      
+
       if (issueResponse.data.deadline) {
-        setDeadlineInput(issueResponse.data.deadline.split('T')[0]);
+        setDeadlineInput(issueResponse.data.deadline.split("T")[0]);
       } else {
         setDeadlineInput("");
       }
-  
+
     } catch (err) {
       console.error("ERROR:", err);
     } finally {
@@ -99,8 +110,8 @@ export default function IssueDetail() {
 
   async function handleDeleteIssue() {
     setConfirmData({
-      title:"Delete issue",
-      message:"Are you sure you want to delete this issue?",
+      title: "Delete issue",
+      message: "Are you sure you want to delete this issue?",
       action: async () => {
         await api.remove(pk);
         navigate("/");
@@ -134,11 +145,34 @@ export default function IssueDetail() {
 
   async function handleDeleteAttachment(attachmentId) {
     setConfirmData({
-      title:"Delete attachment",
-      message:"Are you sure you want to delete this attachment?",
-      action: async ()=>{
-        await api.deleteAttachment(pk, attachmentId);
-        await loadIssue();
+      title: "Delete attachment",
+      message: "Are you sure you want to delete this attachment?",
+      action: async () => {
+        try {
+          await api.deleteAttachment(pk, attachmentId);
+          await loadIssue();
+        } catch (err) {
+          console.error("Error deleting attachment:", err.response?.data || err);
+
+          const status = err.response?.status;
+
+          const backendMessage =
+            err.response?.data?.error ||
+            err.response?.data?.detail ||
+            err.response?.data?.message;
+
+          if (status === 401 || status === 403) {
+            showErrorMessage(
+              "You cannot delete this attachment because it was uploaded by another user."
+            );
+          } else {
+            showErrorMessage(
+              backendMessage || "The attachment could not be deleted."
+            );
+          }
+
+          throw err;
+        }
       }
     });
   }
@@ -152,66 +186,77 @@ export default function IssueDetail() {
     }
   }
 
-  async function handleAssignMe() {
+ async function handleAssignMe() {
+  try {
+    const usersResponse = await usersService.list();
+    const backendUsers = usersResponse.data || [];
+
+    const authenticatedUser = backendUsers.find(
+      user => user.username === currentUser.username
+    );
+
+    if (!authenticatedUser?.id) {
+      showErrorMessage(
+        "Could not assign the issue because the authenticated user was not found."
+      );
+      return;
+    }
+
+    await api.assign(
+      pk,
+      authenticatedUser.id
+    );
+
+    await loadIssue();
+  } catch (err) {
+    console.error(
+      "Error assigning issue to authenticated user:",
+      err.response?.data || err
+    );
+
+    const backendMessage =
+      err.response?.data?.error ||
+      err.response?.data?.detail ||
+      err.response?.data?.message;
+
+    showErrorMessage(
+      backendMessage || "The issue could not be assigned to you."
+    );
+  }
+}
+
+  async function handleAssignUser(userId) {
     try {
       await api.assign(
-          pk,
-          currentUser.id
-      );
-      loadIssue();
-    } catch(err) {
-      console.error(err);
-    }
-  }
-
-    async function handleAssignUser(
-    userId
-    ){
-
-    try{
-
-      await api.assign(
-          pk,
-          userId
+        pk,
+        userId
       );
 
       setAssignedOpen(false);
 
       loadIssue();
 
-    }catch(err){
-
+    } catch (err) {
       console.error(err);
-
     }
+  }
 
-    }
-
-    async function handleUnassign(){
-
-    try{
-
+  async function handleUnassign() {
+    try {
       await api.unassign(pk);
 
       loadIssue();
 
-    }catch(err){
-
+    } catch (err) {
       console.error(err);
-
     }
+  }
 
-    }
-
-  async function handleAddWatcher(
-    userId
-  ){
-
-    try{
-
-      const currentWatchersIds=
+  async function handleAddWatcher(userId) {
+    try {
+      const currentWatchersIds =
         issue.watchers?.map(
-          watcher=>watcher.id
+          watcher => watcher.id
         ) || [];
 
       await api.updateWatchers(
@@ -226,20 +271,13 @@ export default function IssueDetail() {
 
       loadIssue();
 
-    }catch(err){
-
+    } catch (err) {
       console.error(err);
-
     }
-
   }
 
-  async function handleRemoveWatcher(
-    watcherId
-  ){
-
-    try{
-
+  async function handleRemoveWatcher(watcherId) {
+    try {
       await api.removeWatcher(
         pk,
         watcherId
@@ -247,12 +285,9 @@ export default function IssueDetail() {
 
       loadIssue();
 
-    }catch(err){
-
+    } catch (err) {
       console.error(err);
-
     }
-
   }
 
   async function handleEditComment(commentId) {
@@ -304,9 +339,9 @@ export default function IssueDetail() {
 
   async function handleDeleteComment(commentId) {
     setConfirmData({
-      title:"Delete comment",
-      message:"Delete this comment?",
-      action: async ()=>{
+      title: "Delete comment",
+      message: "Delete this comment?",
+      action: async () => {
         await api.deleteComment(pk, commentId);
         loadIssue();
       }
@@ -327,7 +362,7 @@ export default function IssueDetail() {
         due_date: null,
         tags_input: issue.tags_detail?.map(t => t.name || t) || []
       };
-  
+
       await api.update(pk, payload);
       setDeadlineInput("");
       await loadIssue();
@@ -336,10 +371,10 @@ export default function IssueDetail() {
       alert("No se pudo eliminar la fecha límite.");
     }
   }
-  
+
   async function handleUpdateDeadline() {
     if (!deadlineInput.trim()) return;
-  
+
     try {
       const payload = {
         title: issue.title,
@@ -353,7 +388,7 @@ export default function IssueDetail() {
         due_date: deadlineInput,
         tags_input: issue.tags_detail?.map(t => t.name || t) || []
       };
-  
+
       console.log("Actualizando deadline:", payload);
       await api.update(pk, payload);
       await loadIssue();
@@ -362,8 +397,6 @@ export default function IssueDetail() {
       alert("No se pudo guardar la fecha límite.");
     }
   }
- 
- 
 
   function getDeadlineClass(deadline) {
     if (!deadline) return "";
@@ -399,6 +432,16 @@ export default function IssueDetail() {
           <button className="alert-close" onClick={() => setSuccessMessage("")}>×</button>
         </div>
       )}
+
+      {errorMessage && (
+        <div className="alert alert-error">
+          {errorMessage}
+          <button className="alert-close" onClick={() => setErrorMessage("")}>
+            ×
+          </button>
+        </div>
+      )}
+
       {/* BACK */}
       <Link to="/" className="back-link">
         ← Back to issues
@@ -440,16 +483,16 @@ export default function IssueDetail() {
                 Created by <strong>{issue.created_by?.username || "Unknown"}</strong> · {issue.created_at ? new Date(issue.created_at).toLocaleString() : "-"}
               </div>
 
-              <div className="description-divider" /> 
+              <div className="description-divider" />
 
               <div className={`description ${!issue.description?.trim() ? "empty" : ""}`}>
                 {issue.description?.trim() || "No description yet."}
               </div>
- 
+
               {issue.tags_detail && issue.tags_detail.length > 0 && (
                 <>
                   <div className="description-divider" />
- 
+
                   <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "20px", marginBottom: "12px" }}>
                     {issue.tags_detail.map((tag) => (
                       <span
@@ -697,21 +740,21 @@ export default function IssueDetail() {
                 <button
                   className="status-selector"
                   style={{
-                    backgroundColor: `${currentStatus?.color}15`, 
-                    borderColor: `${currentStatus?.color}30`,     
-                    color: currentStatus?.color || "#4a5568"      
+                    backgroundColor: `${currentStatus?.color}15`,
+                    borderColor: `${currentStatus?.color}30`,
+                    color: currentStatus?.color || "#4a5568"
                   }}
                   onClick={() => setStatusOpen(!statusOpen)}
                 >
-                  <span 
-                    className="status-dot" 
-                    style={{ background: currentStatus?.color || "#4a5568" }} 
+                  <span
+                    className="status-dot"
+                    style={{ background: currentStatus?.color || "#4a5568" }}
                   />
-                  
+
                   <span className="status-text">
                     {issue?.status_detail?.name || "No status"}
                   </span>
-                  
+
                   <span className="status-arrow" style={{ color: currentStatus?.color }}>
                     {statusOpen ? "▴" : "▾"}
                   </span>
@@ -720,26 +763,26 @@ export default function IssueDetail() {
                 {statusOpen && (
                   <div className="status-menu">
                     {statuses.map((status) => (
-                      <button 
-                        key={status.id} 
-                        className="status-option" 
+                      <button
+                        key={status.id}
+                        className="status-option"
                         style={{
-                          backgroundColor: `${status.color}15`, 
-                          color: status.color,               
-                          marginBottom: '4px'                
+                          backgroundColor: `${status.color}15`,
+                          color: status.color,
+                          marginBottom: "4px"
                         }}
                         onClick={() => handleChangeStatus(status)}
                       >
                         <span className="status-dot" style={{ background: status.color }} />
                         <span className="status-text">{status.name}</span>
-                        <span style={{ width: '10px' }} /> 
+                        <span style={{ width: "10px" }} />
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             ) : (
-              <div 
+              <div
                 className="status-selector readonly"
                 style={{
                   backgroundColor: `${currentStatus?.color}15`,
@@ -747,9 +790,9 @@ export default function IssueDetail() {
                   color: currentStatus?.color || "#4a5568"
                 }}
               >
-                <span 
-                  className="status-dot" 
-                  style={{ background: currentStatus?.color || "#4a5568" }} 
+                <span
+                  className="status-dot"
+                  style={{ background: currentStatus?.color || "#4a5568" }}
                 />
                 <span className="status-text">
                   {issue?.status_detail?.name || "No status"}
@@ -761,9 +804,9 @@ export default function IssueDetail() {
             <div className="meta-row">
               <div className="meta-label">type</div>
               <div className="meta-value">
-                <span 
-                  className="meta-dot" 
-                  style={{ background: issue.type_detail?.color || "#e11d48" }} 
+                <span
+                  className="meta-dot"
+                  style={{ background: issue.type_detail?.color || "#e11d48" }}
                 />
                 <span>{issue.type_detail?.name || issue.type_detail || "Not set"}</span>
               </div>
@@ -772,9 +815,9 @@ export default function IssueDetail() {
             <div className="meta-row">
               <div className="meta-label">severity</div>
               <div className="meta-value">
-                <span 
-                  className="meta-dot" 
-                  style={{ background: issue.severity_detail?.color || "#ca8a04" }} 
+                <span
+                  className="meta-dot"
+                  style={{ background: issue.severity_detail?.color || "#ca8a04" }}
                 />
                 <span>{issue.severity_detail?.name || issue.severity_detail || "Not set"}</span>
               </div>
@@ -783,21 +826,20 @@ export default function IssueDetail() {
             <div className="meta-row">
               <div className="meta-label">priority</div>
               <div className="meta-value">
-                <span 
-                  className="meta-dot" 
-                  style={{ background: issue.priority_detail?.color || "#ea580c" }} 
+                <span
+                  className="meta-dot"
+                  style={{ background: issue.priority_detail?.color || "#ea580c" }}
                 />
                 <span>{issue.priority_detail?.name || issue.priority_detail || "Not set"}</span>
               </div>
             </div>
 
-            {/* DEADLINE */} 
+            {/* DEADLINE */}
             <div className="deadline-row">
-            
               <div className="meta-label">
                 deadline
               </div>
-            
+
               <div
                 className="meta-value"
                 style={{
@@ -806,7 +848,7 @@ export default function IssueDetail() {
                   gap: "8px"
                 }}
               >
-            
+
                 {issue.created_by?.username === currentUser.username ? (
                   <>
                     <div
@@ -821,13 +863,13 @@ export default function IssueDetail() {
                         value={deadlineInput}
                         onChange={(e) => setDeadlineInput(e.target.value)}
                         onBlur={() => {
-                          if (deadlineInput && deadlineInput !== (issue.deadline?.split('T')[0] || "")) {
+                          if (deadlineInput && deadlineInput !== (issue.deadline?.split("T")[0] || "")) {
                             handleUpdateDeadline();
                           }
                         }}
                         className="deadline-input"
                       />
-            
+
                       {deadlineInput && (
                         <button
                           className="deadline-delete-btn"
@@ -837,7 +879,7 @@ export default function IssueDetail() {
                         </button>
                       )}
                     </div>
-            
+
                     {issue.deadline_due_status && (
                       <span
                         style={{
@@ -885,7 +927,7 @@ export default function IssueDetail() {
                     >
                       {deadlineInput || "-"}
                     </div>
-            
+
                     {issue.deadline_due_status && (
                       <span
                         style={{
@@ -915,12 +957,9 @@ export default function IssueDetail() {
                     )}
                   </div>
                 )}
-            
+
               </div>
-            
             </div>
-
-
 
             {/* ASSIGNED */}
             <div className="section-title">
@@ -928,138 +967,106 @@ export default function IssueDetail() {
             </div>
 
             <div
-            style={{
-              display:"flex",
-              flexDirection:"column",
-              gap:"8px"
-            }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px"
+              }}
             >
 
               {issue.assigned_to_detail ? (
-
-                    <div
-                      style={{
-                      display:"flex",
-                      justifyContent:"space-between",
-                      alignItems:"center",
-                      padding:"6px 0"
-                      }}
-                    >
-
-                    <div
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "6px 0"
+                  }}
+                >
+                  <div
                     style={{
-                    display:"flex",
-                    alignItems:"center",
-                    gap:"10px"
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px"
                     }}
-                    >
-
+                  >
                     {issue.assigned_to_detail.avatar ? (
-
                       <img
-                      src={
-                      issue.assigned_to_detail.avatar
-                      }
-                      alt=""
-                      style={{
-                      width:"30px",
-                      height:"30px",
-                      borderRadius:"50%"
-                      }}
+                        src={issue.assigned_to_detail.avatar}
+                        alt=""
+                        style={{
+                          width: "30px",
+                          height: "30px",
+                          borderRadius: "50%"
+                        }}
                       />
-
-                      ):(
-
+                    ) : (
                       <div className="comment-avatar">
-                      {issue.assigned_to_detail.username}
+                        {issue.assigned_to_detail.username}
                       </div>
-
                     )}
 
                     <span>
-                    {issue.assigned_to_detail.username}
+                      {issue.assigned_to_detail.username}
                     </span>
+                  </div>
 
-                    </div>
-
-                    <button
+                  <button
                     className="deadline-delete-btn"
                     onClick={handleUnassign}
-                    >
+                  >
                     ✕
-                    </button>
-
-                    </div>
-
-                    ):(
-
-                    <div
-                    className="description empty"
-                    >
-
-                    No assigned user
-
-                    </div>
-                    
+                  </button>
+                </div>
+              ) : (
+                <div className="description empty">
+                  No assigned user
+                </div>
               )}
 
-            {currentUser.username !== issue.assigned_to_detail?.username && (
+              {currentUser.username !== issue.assigned_to_detail?.username && (
                 <button
-                className="watchers-action-btn"
-                onClick={handleAssignMe}
+                  className="watchers-action-btn"
+                  onClick={handleAssignMe}
                 >
-                Assign to me
+                  Assign to me
                 </button>
-            )}   
+              )}
 
-            <div className="status-dropdown">
-
-            <button
-              className="watchers-action-btn"
-              onClick={() =>
-                setAssignedOpen(
-                  !assignedOpen
-                )
-              }
-            >
-              + Add assigned
-            </button>
-
-            {assignedOpen && (
-
-              <div className="status-menu">
-
-                {users
-                .filter(
-                  user =>
-                  user.username !==
-                  currentUser.username
-                )
-
-                .map(user=>(
-
+              <div className="status-dropdown">
                 <button
-                  key={user.id}
-                  className="assign-user-option"
+                  className="watchers-action-btn"
                   onClick={() =>
-                    handleAssignUser(user.id)
+                    setAssignedOpen(
+                      !assignedOpen
+                    )
                   }
                 >
-                  {user.username}
+                  + Add assigned
                 </button>
 
-                ))}
-
+                {assignedOpen && (
+                  <div className="status-menu">
+                    {users
+                      .filter(
+                        user =>
+                          user.username !==
+                          currentUser.username
+                      )
+                      .map(user => (
+                        <button
+                          key={user.id}
+                          className="assign-user-option"
+                          onClick={() =>
+                            handleAssignUser(user.id)
+                          }
+                        >
+                          {user.username}
+                        </button>
+                      ))}
+                  </div>
+                )}
               </div>
-
-            )}
-
-          </div>
-
-            
-
-            
-
             </div>
 
             {/* WATCHERS */}
@@ -1068,175 +1075,142 @@ export default function IssueDetail() {
             </div>
 
             <div
-            style={{
-            display:"flex",
-            flexDirection:"column",
-            gap:"8px"
-            }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px"
+              }}
             >
+              {!issue.watchers?.length ? (
+                <div className="description empty">
+                  No watchers yet
+                </div>
+              ) : (
+                issue.watchers.map(watcher => (
+                  <div
+                    key={watcher.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "6px 0"
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px"
+                      }}
+                    >
+                      {watcher.avatar ? (
+                        <img
+                          src={watcher.avatar}
+                          alt=""
+                          style={{
+                            width: "30px",
+                            height: "30px",
+                            borderRadius: "50%"
+                          }}
+                        />
+                      ) : (
+                        <div className="comment-avatar">
+                          {watcher.username[0]}
+                        </div>
+                      )}
 
-            {!issue.watchers?.length ? (
+                      <span>
+                        {watcher.username}
+                      </span>
+                    </div>
 
-            <div className="description empty">
-            No watchers yet
-            </div>
+                    <button
+                      className="deadline-delete-btn"
+                      onClick={() =>
+                        handleRemoveWatcher(
+                          watcher.id
+                        )
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))
+              )}
 
-            ):(
+              {!issue.watchers?.some(
+                watcher =>
+                  watcher.username ===
+                  currentUser.username
+              ) && (
+                <button
+                  className="watchers-action-btn"
+                  onClick={handleToggleWatch}
+                >
+                  Watch
+                </button>
+              )}
 
-            issue.watchers.map(watcher=>(
+              <div className="status-dropdown">
+                <button
+                  className="watchers-action-btn"
+                  onClick={() =>
+                    setWatchersOpen(
+                      !watchersOpen
+                    )
+                  }
+                >
+                  + Add watcher
+                </button>
 
-            <div
-            key={watcher.id}
-            style={{
-            display:"flex",
-            justifyContent:"space-between",
-            alignItems:"center",
-            padding:"6px 0"
-            }}
-            >
-
-            <div
-            style={{
-            display:"flex",
-            alignItems:"center",
-            gap:"10px"
-            }}
-            >
-
-            {watcher.avatar ? (
-
-            <img
-            src={watcher.avatar}
-            alt=""
-            style={{
-            width:"30px",
-            height:"30px",
-            borderRadius:"50%"
-            }}
-            />
-
-            ):(
-
-            <div className="comment-avatar">
-            {watcher.username[0]}
-            </div>
-
-            )}
-
-            <span>
-            {watcher.username}
-            </span>
-
-            </div>
-
-            <button
-            className="deadline-delete-btn"
-            onClick={() =>
-            handleRemoveWatcher(
-            watcher.id
-            )
-            }
-            >
-            ✕
-            </button>
-
-            </div>
-
-            ))
-
-            )}
-
-            {!issue.watchers?.some(
-              watcher=>
-              watcher.username===
-              currentUser.username
-            ) && (
-
-              <button
-              className="watchers-action-btn"
-              onClick={handleToggleWatch}
-              >
-              Watch
-              </button>
-
-            )}
-
-
-            <div className="status-dropdown">
-
-            <button
-            className="watchers-action-btn"
-            onClick={()=>
-            setWatchersOpen(
-            !watchersOpen
-            )
-            }
-            >
-            + Add watcher
-            </button>
-
-
-            {watchersOpen && (
-
-            <div className="status-menu">
-
-            {users
-
-            .filter(user=>
-
-            !issue.watchers?.some(
-            w=>w.id===user.id
-            )
-
-            )
-
-            .map(user=>(
-
-            <button
-            key={user.id}
-            className="assign-user-option"
-            onClick={()=>
-            handleAddWatcher(
-            user.id
-            )
-            }
-            >
-
-            {user.username}
-
-            </button>
-
-            ))}
-
-            </div>
-
-            )}
-
-            </div>
-
+                {watchersOpen && (
+                  <div className="status-menu">
+                    {users
+                      .filter(user =>
+                        !issue.watchers?.some(
+                          w => w.id === user.id
+                        )
+                      )
+                      .map(user => (
+                        <button
+                          key={user.id}
+                          className="assign-user-option"
+                          onClick={() =>
+                            handleAddWatcher(
+                              user.id
+                            )
+                          }
+                        >
+                          {user.username}
+                        </button>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </aside>
       </div>
-        <ConfirmDelete
-          open={!!confirmData}
-          title={confirmData?.title}
-          message={confirmData?.message}
-          confirmText="Delete"
-          variant="danger"
-          onCancel={() =>
-            setConfirmData(null)
-          }
-          onConfirm={async()=>{
-            try{
-              await confirmData?.action?.();
-            }catch(err){
-              console.error(err);
-            }
-            setConfirmData(null);
-          }}
-        />
 
+      <ConfirmDelete
+        open={!!confirmData}
+        title={confirmData?.title}
+        message={confirmData?.message}
+        confirmText="Delete"
+        variant="danger"
+        onCancel={() =>
+          setConfirmData(null)
+        }
+        onConfirm={async () => {
+          try {
+            await confirmData?.action?.();
+          } catch (err) {
+            console.error(err);
+          } finally {
+            setConfirmData(null);
+          }
+        }}
+      />
     </div>
   );
 }

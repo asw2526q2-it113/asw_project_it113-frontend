@@ -8,6 +8,17 @@ import { Link, useLocation } from "react-router-dom";
 
 const BACKEND_URL = "https://asw-project-it113.onrender.com";
 
+const INITIAL_FILTERS = {
+  type: [],
+  severity: [],
+  priority: [],
+  status: [],
+  tag: [],
+  assigned_to: [],
+  order_by: "",
+  q: "",
+};
+
 function getAvatarUrl(avatar) {
   if (!avatar) return null;
 
@@ -42,9 +53,6 @@ function getUserAvatar(user) {
 
 export default function IssueList() {
   const currentUser = useUser();
-  const apiIssues = issuesApi(currentUser.apiKey);
-  const apiUsers = usersApi(currentUser.apiKey);
-  const apiSettings = settingsApi(currentUser.apiKey);
   const location = useLocation();
 
   const [successMessage, setSuccessMessage] = useState(
@@ -54,16 +62,7 @@ export default function IssueList() {
   const [data, setData] = useState({
     issues: [],
     all_users: [],
-    filters: {
-      type: [],
-      severity: [],
-      priority: [],
-      status: [],
-      tag: [],
-      assigned_to: [],
-      order_by: "",
-      q: "",
-    },
+    filters: INITIAL_FILTERS,
     types: [],
     severities: [],
     priorities: [],
@@ -76,12 +75,14 @@ export default function IssueList() {
   const [error, setError] = useState(null);
 
   const [tagsVisible, setTagsVisible] = useState(true);
-  const [pendingFilters, setPendingFilters] = useState(data.filters);
+  const [pendingFilters, setPendingFilters] = useState(INITIAL_FILTERS);
 
   const refreshIssues = async (filtersToUse) => {
+    if (!currentUser?.apiKey) return;
 
     try {
-      const resIssues = await apiIssues.list(filtersToUse);
+      const apiIssuesLocal = issuesApi(currentUser.apiKey);
+      const resIssues = await apiIssuesLocal.list(filtersToUse);
 
       setData((prev) => ({
         ...prev,
@@ -89,61 +90,6 @@ export default function IssueList() {
       }));
     } catch (err) {
       console.error("Error filtrant issues:", err);
-    }
-  };
-
-  const fetchInitialData = async () => {
-    setLoading(true);
-
-    try {
-      const [resIssues, resUsers, resSettings] = await Promise.all([
-        apiIssues.list(data.filters),
-        apiUsers.list(),
-        apiSettings.getAll(),
-      ]);
-
-      const basicUsers = resUsers.data || [];
-
-      const usersWithProfiles = await Promise.all(
-        basicUsers.map(async (user) => {
-          const username = user.username || user;
-
-          try {
-            const profileRes = await apiUsers.profile(username);
-
-            return {
-              ...user,
-              ...profileRes.data,
-              username: profileRes.data.username || username,
-            };
-          } catch (err) {
-            console.error(`Error carregant perfil de ${username}:`, err);
-
-            return {
-              ...user,
-              username,
-            };
-          }
-        })
-      );
-
-
-      setData({
-        issues: resIssues.data.issues || [],
-        all_users: usersWithProfiles,
-        types: resSettings.data.types || [],
-        severities: resSettings.data.severities || [],
-        priorities: resSettings.data.priorities || [],
-        statuses: resSettings.data.statuses || [],
-        tags: resSettings.data.tags || [],
-        users: usersWithProfiles,
-        filters: data.filters,
-      });
-    } catch (err) {
-      console.error("Error carregant la pàgina principal:", err);
-      setError("Error carregant la pàgina principal.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -181,21 +127,84 @@ export default function IssueList() {
   };
 
   useEffect(() => {
-    fetchInitialData();
-  }, [currentUser]);
+    if (!currentUser?.apiKey) return;
+
+    let cancelled = false;
+
+    async function loadInitialData() {
+      const apiIssuesLocal = issuesApi(currentUser.apiKey);
+      const apiUsersLocal = usersApi(currentUser.apiKey);
+      const apiSettingsLocal = settingsApi(currentUser.apiKey);
+
+      try {
+        const [resIssues, resUsers, resSettings] = await Promise.all([
+          apiIssuesLocal.list(INITIAL_FILTERS),
+          apiUsersLocal.list(),
+          apiSettingsLocal.getAll(),
+        ]);
+
+        const basicUsers = resUsers.data || [];
+
+        const usersWithProfiles = await Promise.all(
+          basicUsers.map(async (user) => {
+            const username = user.username || user;
+
+            try {
+              const profileRes = await apiUsersLocal.profile(username);
+
+              return {
+                ...user,
+                ...profileRes.data,
+                username: profileRes.data.username || username,
+              };
+            } catch (err) {
+              console.error(`Error carregant perfil de ${username}:`, err);
+
+              return {
+                ...user,
+                username,
+              };
+            }
+          })
+        );
+
+        if (cancelled) return;
+
+        setData({
+          issues: resIssues.data.issues || [],
+          all_users: usersWithProfiles,
+          types: resSettings.data.types || [],
+          severities: resSettings.data.severities || [],
+          priorities: resSettings.data.priorities || [],
+          statuses: resSettings.data.statuses || [],
+          tags: resSettings.data.tags || [],
+          users: usersWithProfiles,
+          filters: INITIAL_FILTERS,
+        });
+
+        setPendingFilters(INITIAL_FILTERS);
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error("Error carregant la pàgina principal:", err);
+        setError("Error carregant la pàgina principal.");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadInitialData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.apiKey]);
 
   useEffect(() => {
     document.body.classList.toggle("tags-hidden", !tagsVisible);
   }, [tagsVisible]);
-
-  useEffect(() => {
-    setPendingFilters(data.filters);
-  }, [data.filters]);
-
-  useEffect(() => {
-    refreshIssues(pendingFilters);
-    setData((prev) => ({ ...prev, filters: pendingFilters }));
-  }, [pendingFilters.order_by]);
 
   if (loading) {
     return (
@@ -213,7 +222,10 @@ export default function IssueList() {
     (pendingFilters[filterType] || []).map(String).includes(String(id));
 
   const handleSearchChange = (e) => {
-    setPendingFilters({ ...pendingFilters, q: e.target.value });
+    setPendingFilters((prev) => ({
+      ...prev,
+      q: e.target.value,
+    }));
   };
 
   const handleFiltersSubmit = async (e) => {
@@ -240,22 +252,46 @@ export default function IssueList() {
         ? currentValues.filter((val) => val !== stringId)
         : [...currentValues, stringId];
 
-      return { ...prev, [filterType]: newValues };
+      return {
+        ...prev,
+        [filterType]: newValues,
+      };
     });
   };
 
-  const handleSortOrder = (column) => {
-    setPendingFilters((prev) => {
-      const wasAsc = prev.order_by === column;
-      const wasDesc = prev.order_by === `-${column}`;
+  const handleSortOrder = async (column) => {
+    const wasAsc = pendingFilters.order_by === column;
+    const wasDesc = pendingFilters.order_by === `-${column}`;
 
-      let newOrderBy = column;
+    let newOrderBy = column;
 
-      if (wasAsc) newOrderBy = `-${column}`;
-      if (wasDesc) newOrderBy = column;
+    if (wasAsc) newOrderBy = `-${column}`;
+    if (wasDesc) newOrderBy = column;
 
-      return { ...prev, order_by: newOrderBy };
-    });
+    const newFilters = {
+      ...pendingFilters,
+      order_by: newOrderBy,
+    };
+
+    setPendingFilters(newFilters);
+
+    setData((prev) => ({
+      ...prev,
+      filters: newFilters,
+    }));
+
+    await refreshIssues(newFilters);
+  };
+
+  const handleClearFilters = async () => {
+    setPendingFilters(INITIAL_FILTERS);
+
+    setData((prev) => ({
+      ...prev,
+      filters: INITIAL_FILTERS,
+    }));
+
+    await refreshIssues(INITIAL_FILTERS);
   };
 
   return (
@@ -554,22 +590,7 @@ export default function IssueList() {
                 <button
                   type="button"
                   className="btn btn-outline"
-                  onClick={() => {
-                    const reset = {
-                      type: [],
-                      severity: [],
-                      priority: [],
-                      status: [],
-                      tag: [],
-                      assigned_to: [],
-                      order_by: "",
-                      q: "",
-                    };
-
-                    setPendingFilters(reset);
-                    setData((prev) => ({ ...prev, filters: reset }));
-                    refreshIssues(reset);
-                  }}
+                  onClick={handleClearFilters}
                 >
                   Clear
                 </button>
