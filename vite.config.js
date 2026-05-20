@@ -6,12 +6,17 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      util: 'util/'
-    }
+      util: 'util/',
+      process: 'process/browser',
+    },
   },
 
   define: {
-    global: 'globalThis'
+    global: 'globalThis',
+  },
+
+  optimizeDeps: {
+    include: ['qs'],
   },
 
   server: {
