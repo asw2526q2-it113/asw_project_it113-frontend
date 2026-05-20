@@ -1,5 +1,28 @@
 import { authClient } from "./client";
-import qs from "qs";
+
+const paramsSerializer = (params) => {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === ""
+    ) {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((v) => {
+        searchParams.append(key, v);
+      });
+    } else {
+      searchParams.append(key, value);
+    }
+  });
+
+  return searchParams.toString();
+};
 
 export const issuesApi = (apiKey) => {
   const http = authClient(apiKey);
@@ -9,7 +32,7 @@ export const issuesApi = (apiKey) => {
     list: (params) =>
       http.get("issues/", {
         params,
-        paramsSerializer: (p) => qs.stringify(p, { arrayFormat: "repeat", skipNulls: true })
+        paramsSerializer
       }),
 
     // GET /api/issues/:pk/
