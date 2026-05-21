@@ -51,6 +51,46 @@ function getUserAvatar(user) {
   );
 }
 
+function getDeadlineDueStatus(deadline) {
+  if (!deadline) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const deadlineDate = new Date(deadline);
+  deadlineDate.setHours(0, 0, 0, 0);
+
+  if (deadlineDate < today) {
+    return {
+      name: "Overdue",
+      color: "#dc2626",
+    };
+  }
+
+  if (deadlineDate.getTime() === today.getTime()) {
+    return {
+      name: "Due today",
+      color: "#d97706",
+    };
+  }
+
+  return {
+    name: "Due soon",
+    color: "#41bfb5",
+  };
+}
+
+function formatDeadline(deadline) {
+  if (!deadline) return "";
+
+  return new Date(deadline).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+
 export default function IssueList() {
   const currentUser = useUser();
   const location = useLocation();
@@ -142,6 +182,10 @@ export default function IssueList() {
           apiUsersLocal.list(),
           apiSettingsLocal.getAll(),
         ]);
+
+        console.log("RAW ISSUES RESPONSE:", resIssues.data);
+        console.log("FIRST ISSUE:", resIssues.data.issues?.[0]);
+
 
         const basicUsers = resUsers.data || [];
 
@@ -618,6 +662,16 @@ export default function IssueList() {
                 {data.issues.map((issue) => {
                   const assignedAvatar = getUserAvatar(issue.assigned_to);
 
+                  const deadline = issue.deadline || issue.due_date || null;
+
+                  const apiDeadlineStatus = issue.deadline_due_status;
+
+                  const deadlineStatus =
+                    apiDeadlineStatus &&
+                    apiDeadlineStatus.color &&
+                    apiDeadlineStatus.color !== "string"
+                      ? apiDeadlineStatus
+                      : getDeadlineDueStatus(deadline);
                   return (
                     <tr
                       key={issue.id}
@@ -657,12 +711,38 @@ export default function IssueList() {
                       <td>
                         <div style={{ marginBottom: "4px" }}>
                           <span className="issue-ref">#{issue.id}</span>
+
                           <span
                             className="issue-title-link"
                             style={{ marginLeft: "8px" }}
                           >
                             {issue.title}
                           </span>
+
+                          {deadlineStatus && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                verticalAlign: "middle",
+                                marginLeft: "4px",
+                                color: deadlineStatus.color || "#41bfb5",
+                              }}
+                              title={`${deadlineStatus.name || "Deadline"} · ${formatDeadline(deadline)}`}
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                width="12"
+                                height="12"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.2"
+                              >
+                                <circle cx="12" cy="12" r="9" />
+                                <polyline points="12 7 12 12 15 15" />
+                              </svg>
+                            </span>
+                          )}
                         </div>
 
                         {issue.tags && issue.tags.length > 0 && (
