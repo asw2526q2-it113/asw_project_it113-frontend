@@ -11,6 +11,8 @@ import BulkInsert from "./pages/BulkInsert";
 
 import { usersApi } from "./api/users";
 
+import taigaLogo from "./assets/taiga-logo.png";
+
 export const UserContext = createContext(null);
 export const useUser = () => useContext(UserContext);
 
@@ -53,7 +55,7 @@ function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="sb-logo">
-        <img src="/src/assets/taiga-logo.png" alt="Taiga" />
+        <img src={taigaLogo} alt="Taiga" />
       </div>
 
       <NavLink
