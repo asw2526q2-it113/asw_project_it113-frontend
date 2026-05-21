@@ -180,7 +180,21 @@ function Topbar({ currentUser, onUserChange }) {
 }
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(USERS[0]);
+  //const [currentUser, setCurrentUser] = useState(USERS[0]);
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem("currentUser");
+
+    return saved
+      ? JSON.parse(saved)
+      : USERS[0];
+  });
+  useEffect(() => {
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(currentUser)
+    );
+  }, [currentUser]);
 
   return (
     <UserContext.Provider value={currentUser}>

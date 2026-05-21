@@ -74,6 +74,12 @@ export default function IssueDetail() {
     }, 4000);
   }
 
+  function getTagsForPayload() {
+    return issue.tags_detail?.map(
+      tag => tag.name || tag
+    ) || [];
+  }
+
   async function loadIssue() {
     try {
       setLoading(true);
@@ -317,7 +323,7 @@ export default function IssueDetail() {
         assigned_to: issue.assigned_to?.id !== undefined ? issue.assigned_to.id : issue.assigned_to,
         deadline: issue.deadline,
         due_date: issue.due_date || issue.deadline,
-        tags_input: issue.tags_detail || []
+        tags_input: getTagsForPayload()
       };
 
       console.log("Enviando petición al servidor con el payload real:", payload);
@@ -360,7 +366,7 @@ export default function IssueDetail() {
         assigned_to: issue.assigned_to?.id || null,
         deadline: null,
         due_date: null,
-        tags_input: issue.tags_detail?.map(t => t.name || t) || []
+        tags_input: getTagsForPayload()
       };
 
       await api.update(pk, payload);
@@ -386,7 +392,7 @@ export default function IssueDetail() {
         assigned_to: issue.assigned_to?.id || null,
         deadline: deadlineInput,
         due_date: deadlineInput,
-        tags_input: issue.tags_detail?.map(t => t.name || t) || []
+        tags_input: getTagsForPayload()
       };
 
       console.log("Actualizando deadline:", payload);
@@ -483,47 +489,65 @@ export default function IssueDetail() {
                 Created by <strong>{issue.created_by?.username || "Unknown"}</strong> · {issue.created_at ? new Date(issue.created_at).toLocaleString() : "-"}
               </div>
 
+              {issue.tags_detail && issue.tags_detail.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "6px",
+                    flexWrap: "wrap",
+                    marginTop: "8px",
+                    marginBottom: "8px"
+                  }}
+                >
+                  {issue.tags_detail.map((tag) => (
+                    <span
+                      key={tag.id || tag}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+
+                        padding: "2px 8px",
+                        borderRadius: "10px",
+
+                        backgroundColor: tag.color
+                          ? `${tag.color}20`
+                          : "#e5e7eb",
+
+                        color: tag.color || "#374151",
+
+                        fontSize: "11px",
+                        fontWeight: "500",
+
+                        border: `1px solid ${
+                          tag.color
+                            ? `${tag.color}40`
+                            : "#d1d5db"
+                        }`
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: "5px",
+                          height: "5px",
+                          minWidth: "5px",
+                          borderRadius: "50%",
+                          backgroundColor:
+                            tag.color || "#374151"
+                        }}
+                      />
+
+                      {tag.name || tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="description-divider" />
 
               <div className={`description ${!issue.description?.trim() ? "empty" : ""}`}>
                 {issue.description?.trim() || "No description yet."}
               </div>
-
-              {issue.tags_detail && issue.tags_detail.length > 0 && (
-                <>
-                  <div className="description-divider" />
-
-                  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "20px", marginBottom: "12px" }}>
-                    {issue.tags_detail.map((tag) => (
-                      <span
-                        key={tag.id || tag}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "8px 16px",
-                          borderRadius: "20px",
-                          backgroundColor: tag.color ? `${tag.color}20` : "#e5e7eb",
-                          color: tag.color || "#374151",
-                          fontSize: "14px",
-                          fontWeight: "500",
-                          border: `1px solid ${tag.color ? `${tag.color}40` : "#d1d5db"}`
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: "8px",
-                            height: "8px",
-                            borderRadius: "50%",
-                            backgroundColor: tag.color || "#374151"
-                          }}
-                        />
-                        {tag.name || tag}
-                      </span>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
@@ -1002,7 +1026,7 @@ export default function IssueDetail() {
                       />
                     ) : (
                       <div className="comment-avatar">
-                        {issue.assigned_to_detail.username}
+                        {issue.assigned_to_detail.username[0].toUpperCase()}
                       </div>
                     )}
 
@@ -1115,7 +1139,7 @@ export default function IssueDetail() {
                         />
                       ) : (
                         <div className="comment-avatar">
-                          {watcher.username[0]}
+                          {watcher.username[0].toUpperCase()}
                         </div>
                       )}
 
